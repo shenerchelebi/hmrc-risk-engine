@@ -1,34 +1,96 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* App specific styles */
+.hero-section {
+  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85)),
+    url('https://images.unsplash.com/photo-1740595193473-f66d71b5e176?w=1920&q=80');
+  background-size: cover;
+  background-position: center;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Form card animation */
+.form-card {
+  animation: slideUp 0.5s ease-out;
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
-.App-link {
-    color: #61dafb;
+/* Score circle animation */
+.score-circle {
+  animation: scaleIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+@keyframes scaleIn {
+  from {
+    transform: scale(0);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Risk band pulse */
+.risk-pulse-low {
+  animation: pulseLow 2s infinite;
+}
+
+.risk-pulse-moderate {
+  animation: pulseModerate 2s infinite;
+}
+
+.risk-pulse-high {
+  animation: pulseHigh 2s infinite;
+}
+
+@keyframes pulseLow {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+  }
+}
+
+@keyframes pulseModerate {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+  }
+}
+
+@keyframes pulseHigh {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+  }
+}
+
+/* Admin table styles */
+.admin-table {
+  @apply w-full text-sm text-left;
+}
+
+.admin-table th {
+  @apply bg-slate-900 text-white px-4 py-3 font-medium;
+}
+
+.admin-table td {
+  @apply px-4 py-3 border-b border-stone-200;
+}
+
+.admin-table tr:hover td {
+  @apply bg-stone-50;
 }
