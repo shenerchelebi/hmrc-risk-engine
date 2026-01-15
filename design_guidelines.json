@@ -1,0 +1,136 @@
+{
+  "identity": {
+    "name": "E1",
+    "role": "The Anti-AI Designer",
+    "mission": "Create a 'Modern Bureaucrat' aesthetic that blends Swiss precision with the warmth of high-end financial stationery. Trust is the currency.",
+    "principles": [
+      "Fusion: Government Authority (Serif fonts) + Fintech Speed (Clean UI)",
+      "Emotion: Calm Competence. The user is stressed; the UI is the anchor.",
+      "Content: Every label must be clear. No jargon without explanation.",
+      "Zoom: Focus on the 'Risk Score' as the hero element.",
+      "Negative Space: Use 'Paper' margins. Don't crowd the tax return."
+    ]
+  },
+  "typography": {
+    "font_family": {
+      "headings": "Playfair Display, serif",
+      "body": "Inter, sans-serif",
+      "mono": "JetBrains Mono, monospace"
+    },
+    "weights": {
+      "headings": "font-bold",
+      "body": "font-normal",
+      "emphasis": "font-semibold"
+    },
+    "scale": {
+      "h1": "text-4xl md:text-6xl tracking-tight",
+      "h2": "text-3xl md:text-4xl tracking-tight",
+      "h3": "text-2xl font-semibold",
+      "body": "text-base leading-relaxed",
+      "caption": "text-sm text-muted-foreground"
+    },
+    "instructions": "Use Playfair Display for all major section headers to evoke the feeling of a 'Financial Times' headline or a legal deed. Use Inter for all form inputs and data tables for maximum legibility."
+  },
+  "colors": {
+    "palette": {
+      "primary": {
+        "name": "Royal Slate",
+        "hex": "#0f172a",
+        "tailwind": "bg-slate-900 text-white"
+      },
+      "secondary": {
+        "name": "HMRC Teal (Modernized)",
+        "hex": "#0d9488",
+        "tailwind": "bg-teal-600 text-white"
+      },
+      "background": {
+        "name": "Legal Paper",
+        "hex": "#fcfcfc",
+        "tailwind": "bg-stone-50"
+      },
+      "surface": {
+        "name": "Clean Card",
+        "hex": "#ffffff",
+        "tailwind": "bg-white border-stone-200"
+      },
+      "risk_levels": {
+        "low": "bg-emerald-100 text-emerald-800 border-emerald-200",
+        "moderate": "bg-amber-100 text-amber-800 border-amber-200",
+        "high": "bg-rose-100 text-rose-800 border-rose-200"
+      }
+    },
+    "usage_rules": [
+      "Never use pure black. Use Slate-900.",
+      "Backgrounds should be Stone-50 (warm grey) to reduce eye strain, not stark white.",
+      "Use the 'Risk Level' colors ONLY for status badges and score indicators. Do not use them for decoration."
+    ]
+  },
+  "layout": {
+    "grid_system": {
+      "marketing": "Mode A: Tetris Grid (Asymmetrical, wide gaps)",
+      "dashboard": "Mode B: High Density (Tight gaps, data correlation)"
+    },
+    "spacing": {
+      "container_padding": "p-6 md:p-12",
+      "section_gap": "gap-8 md:gap-16",
+      "internal_component_padding": "p-6"
+    },
+    "containers": {
+      "card": "rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200",
+      "panel": "rounded-2xl border border-stone-200 bg-stone-100/50 p-6"
+    }
+  },
+  "components": {
+    "buttons": {
+      "primary": "bg-slate-900 text-white hover:bg-slate-800 rounded-md px-8 py-3 font-medium shadow-sm transition-all active:scale-95",
+      "secondary": "bg-white text-slate-900 border border-stone-200 hover:bg-stone-50 rounded-md px-8 py-3 font-medium transition-all",
+      "ghost": "text-slate-600 hover:text-slate-900 hover:bg-stone-100 rounded-md px-4 py-2"
+    },
+    "inputs": {
+      "style": "bg-white border-stone-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900 rounded-md h-12 px-4",
+      "label": "text-sm font-medium text-slate-700 mb-2 block"
+    },
+    "badges": {
+      "base": "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border",
+      "variants": {
+        "low_risk": "border-transparent bg-emerald-100 text-emerald-800 hover:bg-emerald-200",
+        "moderate_risk": "border-transparent bg-amber-100 text-amber-800 hover:bg-amber-200",
+        "high_risk": "border-transparent bg-rose-100 text-rose-800 hover:bg-rose-200"
+      }
+    },
+    "cards": {
+      "risk_card": "flex flex-col justify-between p-6 bg-white border-l-4 border-l-slate-900 shadow-sm rounded-r-xl"
+    }
+  },
+  "visual_enhancers": {
+    "textures": "Use a subtle 'noise' texture on the Stone-50 background to give it a paper feel.",
+    "shadows": "shadow-[0_2px_8px_rgba(0,0,0,0.04)] for cards. shadow-[0_12px_24px_rgba(0,0,0,0.08)] for floating elements.",
+    "borders": "1px solid #e7e5e4 (Stone-200). Crisp, thin lines."
+  },
+  "images": {
+    "hero_bg": {
+      "url": "https://images.unsplash.com/photo-1740595193473-f66d71b5e176",
+      "alt": "London Financial District Skyline",
+      "usage": "Hero section background with heavy overlay (bg-slate-900/90) to ensure text readability."
+    },
+    "trust_indicator": {
+      "url": "https://images.pexels.com/photos/3770382/pexels-photo-3770382.jpeg",
+      "alt": "Professional Accountant with Calculator",
+      "usage": "About section or 'Why Trust Us' feature block."
+    }
+  },
+  "accessibility": {
+    "contrast": "Ensure all text meets WCAG AA. Slate-600 on Stone-50 is the minimum for body text.",
+    "focus_states": "Visible ring-2 ring-slate-900 offset-2 on all interactive elements.",
+    "reduced_motion": "Respect prefers-reduced-motion media query."
+  },
+  "universal_guidelines": [
+    "DO NOT use gradients for the main background. Keep it solid Stone-50 or subtle noise.",
+    "DO NOT use 'Inter' for Headings. Use 'Playfair Display'.",
+    "DO NOT center text in the dashboard. Keep data left-aligned for scanning.",
+    "ALWAYS add 'data-testid' to interactive elements.",
+    "Use 'sonner' for toast notifications.",
+    "Use 'lucide-react' for icons."
+  ],
+  "instructions_to_main_agent": "You are building a tool that people use when they are afraid of the taxman. Your design must say 'We have this under control'. It should feel like a high-end private bank, not a startup. Use the 'Playfair Display' font to do the heavy lifting of 'Authority'. Use the 'Stone-50' background to do the heavy lifting of 'Calm'."
+}
