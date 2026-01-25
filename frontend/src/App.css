@@ -1,9 +1,29 @@
 /* App specific styles */
 .hero-section {
-  background: linear-gradient(to bottom, rgba(15, 23, 42, 0.95), rgba(15, 23, 42, 0.85)),
-    url('https://images.unsplash.com/photo-1740595193473-f66d71b5e176?w=1920&q=80');
-  background-size: cover;
-  background-position: center;
+  background: linear-gradient(135deg, #0a0a0f 0%, #1a1a2e 50%, #0a0a0f 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.hero-section::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(ellipse at 20% 20%, rgba(45, 212, 191, 0.1) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 80%, rgba(34, 197, 94, 0.08) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+/* Grid pattern background */
+.grid-pattern {
+  background-image: 
+    linear-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+  background-size: 50px 50px;
 }
 
 /* Form card animation */
@@ -56,7 +76,7 @@
     box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(16, 185, 129, 0);
+    box-shadow: 0 0 0 15px rgba(16, 185, 129, 0);
   }
 }
 
@@ -65,7 +85,7 @@
     box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+    box-shadow: 0 0 0 15px rgba(245, 158, 11, 0);
   }
 }
 
@@ -74,8 +94,30 @@
     box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
   }
   50% {
-    box-shadow: 0 0 0 10px rgba(239, 68, 68, 0);
+    box-shadow: 0 0 0 15px rgba(239, 68, 68, 0);
   }
+}
+
+/* Floating animation */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.float-animation {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, #2dd4bf 0%, #22c55e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 /* Admin table styles */
@@ -84,13 +126,23 @@
 }
 
 .admin-table th {
-  @apply bg-slate-900 text-white px-4 py-3 font-medium;
+  @apply bg-zinc-800 text-zinc-300 px-4 py-3 font-medium border-b border-zinc-700;
 }
 
 .admin-table td {
-  @apply px-4 py-3 border-b border-stone-200;
+  @apply px-4 py-3 border-b border-zinc-800;
 }
 
 .admin-table tr:hover td {
-  @apply bg-stone-50;
+  @apply bg-zinc-800/50;
+}
+
+/* Stat card hover */
+.stat-card {
+  transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(45, 212, 191, 0.3);
 }

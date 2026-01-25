@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -7,6 +7,7 @@
 :root {
   --font-heading: 'Playfair Display', serif;
   --font-body: 'Inter', sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
 }
 
 body {
@@ -14,7 +15,8 @@ body {
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  background-color: #fcfcfc;
+  background-color: #0a0a0f;
+  color: #e0e0e0;
 }
 
 h1, h2, h3, h4, h5, h6 {
@@ -22,42 +24,35 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 code {
-  font-family: 'JetBrains Mono', source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
-}
-
-/* Paper texture effect */
-.paper-texture {
-  background-color: #fcfcfc;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-  background-blend-mode: overlay;
+  font-family: var(--font-mono);
 }
 
 @layer base {
   :root {
-    --background: 40 33% 99%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 222 47% 11%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 40 6% 90%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 40 6% 96%;
-    --muted-foreground: 222 9% 46%;
-    --accent: 170 55% 36%;
-    --accent-foreground: 0 0% 98%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 40 6% 90%;
-    --input: 40 6% 90%;
-    --ring: 222 47% 11%;
-    --radius: 0.5rem;
+    --background: 240 10% 4%;
+    --foreground: 0 0% 88%;
+    --card: 240 6% 8%;
+    --card-foreground: 0 0% 88%;
+    --popover: 240 6% 8%;
+    --popover-foreground: 0 0% 88%;
+    --primary: 160 84% 39%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 88%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 55%;
+    --accent: 160 84% 39%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 4% 16%;
+    --input: 240 4% 16%;
+    --ring: 160 84% 39%;
+    --radius: 0.75rem;
     --chart-1: 160 60% 45%;
     --chart-2: 43 74% 66%;
     --chart-3: 0 84% 60%;
-    --chart-4: 222 47% 11%;
+    --chart-4: 222 47% 50%;
     --chart-5: 170 55% 36%;
   }
 }
@@ -71,34 +66,97 @@ code {
   }
 }
 
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1a1a24;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2a2a3a;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3a3a4a;
+}
+
 /* Risk badge styles */
 .risk-badge-low {
-  @apply bg-emerald-100 text-emerald-800 border-emerald-200;
+  @apply bg-emerald-900/50 text-emerald-400 border-emerald-700;
 }
 
 .risk-badge-moderate {
-  @apply bg-amber-100 text-amber-800 border-amber-200;
+  @apply bg-amber-900/50 text-amber-400 border-amber-700;
 }
 
 .risk-badge-high {
-  @apply bg-rose-100 text-rose-800 border-rose-200;
+  @apply bg-rose-900/50 text-rose-400 border-rose-700;
 }
 
-/* Button animations */
+/* Glass morphism */
+.glass {
+  background: rgba(20, 20, 30, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Glow effects */
+.glow-teal {
+  box-shadow: 0 0 20px rgba(45, 212, 191, 0.3);
+}
+
+.glow-emerald {
+  box-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.glow-amber {
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.3);
+}
+
+.glow-rose {
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+}
+
+/* Noise texture overlay */
+.noise-texture::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Button styles */
 .btn-primary {
-  @apply bg-slate-900 text-white hover:bg-slate-800 rounded-md px-8 py-3 font-medium shadow-sm transition-all active:scale-95;
+  @apply bg-teal-600 hover:bg-teal-500 text-white rounded-lg px-8 py-3 font-medium transition-all active:scale-95;
 }
 
 .btn-secondary {
-  @apply bg-white text-slate-900 border border-stone-200 hover:bg-stone-50 rounded-md px-8 py-3 font-medium transition-all;
+  @apply bg-zinc-800 text-white border border-zinc-700 hover:bg-zinc-700 rounded-lg px-8 py-3 font-medium transition-all;
 }
 
 /* Card styles */
-.card-elevated {
-  @apply rounded-xl border border-stone-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200;
+.card-dark {
+  @apply rounded-xl border border-zinc-800 bg-zinc-900/50 backdrop-blur-sm;
 }
 
 /* Input focus styles */
 input:focus, select:focus, textarea:focus {
-  @apply border-slate-900 ring-1 ring-slate-900;
+  @apply border-teal-500 ring-1 ring-teal-500;
+  outline: none;
+}
+
+/* Selection color */
+::selection {
+  background: rgba(45, 212, 191, 0.3);
 }

@@ -44,14 +44,12 @@ const AssessmentPage = () => {
     setIsSubmitting(true);
 
     try {
-      // Validate required fields
       if (!formData.email || !formData.turnover) {
         toast.error("Please fill in all required fields");
         setIsSubmitting(false);
         return;
       }
 
-      // Prepare data with numeric conversions
       const submitData = {
         ...formData,
         turnover: parseFloat(formData.turnover) || 0,
@@ -81,15 +79,15 @@ const AssessmentPage = () => {
   const InputWithTooltip = ({ id, label, tooltip, value, onChange, placeholder, type = "number", required = false }) => (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
-        <Label htmlFor={id} className="text-sm font-medium text-slate-700">
-          {label} {required && <span className="text-red-500">*</span>}
+        <Label htmlFor={id} className="text-sm font-medium text-zinc-300">
+          {label} {required && <span className="text-teal-500">*</span>}
         </Label>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <HelpCircle className="h-4 w-4 text-stone-400 cursor-help" />
+              <HelpCircle className="h-4 w-4 text-zinc-600 cursor-help" />
             </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
+            <TooltipContent className="bg-zinc-800 border-zinc-700 text-zinc-200">
               <p>{tooltip}</p>
             </TooltipContent>
           </Tooltip>
@@ -101,28 +99,28 @@ const AssessmentPage = () => {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-12 bg-white border-stone-200 focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
+        className="h-12 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-600 focus:border-teal-500 focus:ring-teal-500"
         data-testid={`input-${id}`}
       />
     </div>
   );
 
   return (
-    <div className="min-h-screen bg-stone-50 paper-texture">
+    <div className="min-h-screen bg-[#0a0a0f]">
       {/* Header */}
-      <header className="bg-white border-b border-stone-200 px-6 md:px-12 py-4">
+      <header className="bg-[#0d0d14] border-b border-zinc-800 px-6 md:px-12 py-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <button 
             onClick={() => navigate('/')}
-            className="flex items-center gap-2 text-slate-600 hover:text-slate-900 transition-colors"
+            className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors"
             data-testid="back-btn"
           >
             <ArrowLeft className="h-5 w-5" />
             <span>Back</span>
           </button>
           <div className="flex items-center gap-2">
-            <Shield className="h-6 w-6 text-teal-600" />
-            <span className="font-serif font-semibold text-slate-900">HMRC Red-Flag Detector</span>
+            <Shield className="h-5 w-5 text-teal-500" />
+            <span className="font-serif font-semibold text-white">HMRC Red-Flag Detector</span>
           </div>
         </div>
       </header>
@@ -131,33 +129,33 @@ const AssessmentPage = () => {
       <main className="px-6 md:px-12 py-12">
         <div className="max-w-3xl mx-auto">
           <div className="text-center mb-10">
-            <h1 className="font-serif text-3xl md:text-4xl font-bold text-slate-900 mb-3">
+            <h1 className="font-serif text-3xl md:text-4xl font-bold text-white mb-3">
               Self-Assessment Risk Check
             </h1>
-            <p className="text-stone-600">
+            <p className="text-zinc-500">
               Enter your figures below. All calculations are done securely in real-time.
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
             {/* Basic Info Card */}
-            <Card className="card-elevated form-card">
+            <Card className="card-dark form-card border-zinc-800">
               <CardHeader>
-                <CardTitle className="font-serif text-xl">Basic Information</CardTitle>
-                <CardDescription>Select your tax year and enter your email</CardDescription>
+                <CardTitle className="font-serif text-xl text-white">Basic Information</CardTitle>
+                <CardDescription className="text-zinc-500">Select your tax year and enter your email</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="space-y-2">
-                    <Label className="text-sm font-medium text-slate-700">Tax Year *</Label>
+                    <Label className="text-sm font-medium text-zinc-300">Tax Year *</Label>
                     <Select 
                       value={formData.tax_year} 
                       onValueChange={(v) => handleChange('tax_year', v)}
                     >
-                      <SelectTrigger className="h-12 bg-white" data-testid="select-tax-year">
+                      <SelectTrigger className="h-12 bg-zinc-900 border-zinc-700 text-white" data-testid="select-tax-year">
                         <SelectValue />
                       </SelectTrigger>
-                      <SelectContent>
+                      <SelectContent className="bg-zinc-900 border-zinc-700">
                         <SelectItem value="2023-24">2023-24</SelectItem>
                         <SelectItem value="2022-23">2022-23</SelectItem>
                         <SelectItem value="2021-22">2021-22</SelectItem>
@@ -179,10 +177,10 @@ const AssessmentPage = () => {
             </Card>
 
             {/* Income & Expenses Card */}
-            <Card className="card-elevated form-card" style={{ animationDelay: '0.1s' }}>
+            <Card className="card-dark form-card border-zinc-800" style={{ animationDelay: '0.1s' }}>
               <CardHeader>
-                <CardTitle className="font-serif text-xl">Income & Expenses</CardTitle>
-                <CardDescription>Your main self-assessment figures</CardDescription>
+                <CardTitle className="font-serif text-xl text-white">Income & Expenses</CardTitle>
+                <CardDescription className="text-zinc-500">Your main self-assessment figures</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
@@ -208,26 +206,26 @@ const AssessmentPage = () => {
             </Card>
 
             {/* Motor Expenses Card */}
-            <Card className="card-elevated form-card" style={{ animationDelay: '0.2s' }}>
+            <Card className="card-dark form-card border-zinc-800" style={{ animationDelay: '0.2s' }}>
               <CardHeader>
-                <CardTitle className="font-serif text-xl">Motor Expenses</CardTitle>
-                <CardDescription>Vehicle and travel-related claims</CardDescription>
+                <CardTitle className="font-serif text-xl text-white">Motor Expenses</CardTitle>
+                <CardDescription className="text-zinc-500">Vehicle and travel-related claims</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-4">
-                  <Label className="text-sm font-medium text-slate-700">Expense Method *</Label>
+                  <Label className="text-sm font-medium text-zinc-300">Expense Method *</Label>
                   <RadioGroup 
                     value={formData.method} 
                     onValueChange={(v) => handleChange('method', v)}
                     className="flex gap-6"
                   >
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="actual" id="actual" data-testid="radio-actual" />
-                      <Label htmlFor="actual" className="cursor-pointer">Actual Costs</Label>
+                      <RadioGroupItem value="actual" id="actual" className="border-zinc-600 text-teal-500" data-testid="radio-actual" />
+                      <Label htmlFor="actual" className="cursor-pointer text-zinc-300">Actual Costs</Label>
                     </div>
                     <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="mileage" id="mileage" data-testid="radio-mileage" />
-                      <Label htmlFor="mileage" className="cursor-pointer">Mileage Rate (45p/mile)</Label>
+                      <RadioGroupItem value="mileage" id="mileage" className="border-zinc-600 text-teal-500" data-testid="radio-mileage" />
+                      <Label htmlFor="mileage" className="cursor-pointer text-zinc-300">Mileage Rate (45p/mile)</Label>
                     </div>
                   </RadioGroup>
                 </div>
@@ -263,10 +261,10 @@ const AssessmentPage = () => {
             </Card>
 
             {/* Other Expenses Card */}
-            <Card className="card-elevated form-card" style={{ animationDelay: '0.3s' }}>
+            <Card className="card-dark form-card border-zinc-800" style={{ animationDelay: '0.3s' }}>
               <CardHeader>
-                <CardTitle className="font-serif text-xl">Other Expenses</CardTitle>
-                <CardDescription>Additional deductible expenses</CardDescription>
+                <CardTitle className="font-serif text-xl text-white">Other Expenses</CardTitle>
+                <CardDescription className="text-zinc-500">Additional deductible expenses</CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
@@ -299,46 +297,47 @@ const AssessmentPage = () => {
             </Card>
 
             {/* Losses & Additional Card */}
-            <Card className="card-elevated form-card" style={{ animationDelay: '0.4s' }}>
+            <Card className="card-dark form-card border-zinc-800" style={{ animationDelay: '0.4s' }}>
               <CardHeader>
-                <CardTitle className="font-serif text-xl">Losses & Additional Income</CardTitle>
-                <CardDescription>Important context for your assessment</CardDescription>
+                <CardTitle className="font-serif text-xl text-white">Losses & Additional Income</CardTitle>
+                <CardDescription className="text-zinc-500">Important context for your assessment</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center space-x-3">
-                    <Checkbox 
-                      id="loss_this_year" 
-                      checked={formData.loss_this_year}
-                      onCheckedChange={(v) => handleChange('loss_this_year', v)}
-                      data-testid="checkbox-loss-this-year"
-                    />
-                    <Label htmlFor="loss_this_year" className="cursor-pointer">
-                      I'm declaring a loss this tax year
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Checkbox 
-                      id="loss_last_year" 
-                      checked={formData.loss_last_year}
-                      onCheckedChange={(v) => handleChange('loss_last_year', v)}
-                      data-testid="checkbox-loss-last-year"
-                    />
-                    <Label htmlFor="loss_last_year" className="cursor-pointer">
-                      I also declared a loss last tax year
-                    </Label>
-                  </div>
-                  <div className="flex items-center space-x-3">
-                    <Checkbox 
-                      id="other_income" 
-                      checked={formData.other_income}
-                      onCheckedChange={(v) => handleChange('other_income', v)}
-                      data-testid="checkbox-other-income"
-                    />
-                    <Label htmlFor="other_income" className="cursor-pointer">
-                      I have other income sources (employment, rental, etc.)
-                    </Label>
-                  </div>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <Checkbox 
+                    id="loss_this_year" 
+                    checked={formData.loss_this_year}
+                    onCheckedChange={(v) => handleChange('loss_this_year', v)}
+                    className="border-zinc-600 data-[state=checked]:bg-teal-600"
+                    data-testid="checkbox-loss-this-year"
+                  />
+                  <Label htmlFor="loss_this_year" className="cursor-pointer text-zinc-300">
+                    I'm declaring a loss this tax year
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Checkbox 
+                    id="loss_last_year" 
+                    checked={formData.loss_last_year}
+                    onCheckedChange={(v) => handleChange('loss_last_year', v)}
+                    className="border-zinc-600 data-[state=checked]:bg-teal-600"
+                    data-testid="checkbox-loss-last-year"
+                  />
+                  <Label htmlFor="loss_last_year" className="cursor-pointer text-zinc-300">
+                    I also declared a loss last tax year
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Checkbox 
+                    id="other_income" 
+                    checked={formData.other_income}
+                    onCheckedChange={(v) => handleChange('other_income', v)}
+                    className="border-zinc-600 data-[state=checked]:bg-teal-600"
+                    data-testid="checkbox-other-income"
+                  />
+                  <Label htmlFor="other_income" className="cursor-pointer text-zinc-300">
+                    I have other income sources (employment, rental, etc.)
+                  </Label>
                 </div>
               </CardContent>
             </Card>
@@ -348,7 +347,7 @@ const AssessmentPage = () => {
               <Button
                 type="submit"
                 disabled={isSubmitting}
-                className="bg-slate-900 hover:bg-slate-800 text-white px-12 py-6 text-lg rounded-lg w-full md:w-auto transition-all active:scale-95"
+                className="bg-teal-600 hover:bg-teal-500 text-white px-12 py-6 text-lg rounded-xl w-full md:w-auto transition-all active:scale-95"
                 data-testid="submit-assessment-btn"
               >
                 {isSubmitting ? (
@@ -360,7 +359,7 @@ const AssessmentPage = () => {
                   "Get Your Free Risk Score"
                 )}
               </Button>
-              <p className="text-xs text-stone-500 text-center max-w-md">
+              <p className="text-xs text-zinc-600 text-center max-w-md">
                 By submitting, you confirm these figures are for informational purposes only. 
                 This is not tax advice.
               </p>
