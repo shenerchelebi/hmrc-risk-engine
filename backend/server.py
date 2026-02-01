@@ -105,9 +105,9 @@ class TaxAssessment(BaseModel):
     phone_internet: float
     travel_subsistence: float
     marketing: float
-    loss_this_year: bool
-    loss_last_year: bool
-    other_income: bool
+    loss_this_year: bool = False  # Default to False
+    loss_last_year: bool = False  # Default to False
+    other_income: bool = False
     profit: float
     expense_ratio: float
     profit_ratio: float
@@ -115,6 +115,8 @@ class TaxAssessment(BaseModel):
     home_office_ratio: float
     travel_ratio: float
     mileage_value: float
+    calculated_loss: bool = False  # True if profit <= 0
+    has_data_inconsistency: bool = False  # True if loss_checkbox but profit > 0
     risk_score: int
     risk_band: str
     triggered_rules: List[str]
@@ -252,10 +254,13 @@ def calculate_risk_score(data: dict) -> tuple:
     home_office = data['home_office_amount']
     travel = data['travel_subsistence']
     method = data['method']
-    loss_this_year = data['loss_this_year']
-    loss_last_year = data['loss_last_year']
+    loss_checkbox = data.get('loss_this_year', False)
+    loss_last_year = data.get('loss_last_year', False)
     
+    # DERIVED PROFIT: Always calculated from turnover - expenses
     profit = turnover - expenses
+    calculated_loss = profit <= 0  # True loss based on actual figures
+    
     profit_ratio = (profit / turnover * 100) if turnover > 0 else 0
     expense_ratio = (expenses / turnover * 100) if turnover > 0 else 0
     motor_ratio = (motor_costs / turnover * 100) if turnover > 0 else 0
@@ -264,12 +269,17 @@ def calculate_risk_score(data: dict) -> tuple:
     mileage_value = mileage * 0.45
     mileage_value_ratio = (mileage_value / turnover * 100) if turnover > 0 else 0
     
-    if profit_ratio < 5:
-        score += 20
-        triggered_rules.append("Profit less than 5% of turnover (+20 points)")
-    elif profit_ratio < 10:
-        score += 10
-        triggered_rules.append("Profit between 5-10% of turnover (+10 points)")
+    # Track data inconsistency flag
+    has_data_inconsistency = False
+    
+    # Only apply profit margin rules if profit is positive
+    if profit > 0:
+        if profit_ratio < 5:
+            score += 20
+            triggered_rules.append("Profit less than 5% of turnover (+20 points)")
+        elif profit_ratio < 10:
+            score += 10
+            triggered_rules.append("Profit between 5-10% of turnover (+10 points)")
     
     if expense_ratio > 70:
         score += 18
@@ -298,14 +308,23 @@ def calculate_risk_score(data: dict) -> tuple:
         score += 10
         triggered_rules.append("Travel & subsistence exceeds 20% of turnover (+10 points)")
     
-    if loss_this_year:
+    # LOSS LOGIC FIX: Only trigger loss if calculated_profit <= 0 OR loss_checkbox is true
+    # But if loss_checkbox is true AND profit > 0, it's a data inconsistency
+    if calculated_loss:
+        # Actual loss based on figures
         score += 12
         triggered_rules.append("Loss declared this tax year (+12 points)")
+        
+        if loss_last_year:
+            score += 18
+            triggered_rules.append("Consecutive year losses (+18 points)")
+    elif loss_checkbox and profit > 0:
+        # Data inconsistency: checkbox says loss but figures show profit
+        has_data_inconsistency = True
+        score += 8
+        triggered_rules.append("Data inconsistency: 'Loss' selected but figures show profit (+8 points)")
     
-    if loss_this_year and loss_last_year:
-        score += 18
-        triggered_rules.append("Consecutive year losses (+18 points)")
-    
+    # Check for rounded numbers
     rounded_count = 0
     values = [turnover, expenses, motor_costs, home_office, travel, data['marketing']]
     for val in values:
@@ -332,12 +351,43 @@ def calculate_risk_score(data: dict) -> tuple:
         'motor_ratio': round(motor_ratio, 2),
         'home_office_ratio': round(home_office_ratio, 2),
         'travel_ratio': round(travel_ratio, 2),
-        'mileage_value': round(mileage_value, 2)
+        'mileage_value': round(mileage_value, 2),
+        'calculated_loss': calculated_loss,
+        'has_data_inconsistency': has_data_inconsistency
     }
 
 async def generate_ai_report(assessment: dict) -> str:
     """Generate AI-powered risk report content"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
+    
+    # Determine profit/loss status for accurate reporting
+    profit = assessment['profit']
+    has_data_inconsistency = assessment.get('has_data_inconsistency', False)
+    loss_checkbox = assessment.get('loss_this_year', False)
+    
+    # Build accurate status description
+    if profit <= 0:
+        profit_status = f"Loss of £{abs(profit):,.2f}"
+    else:
+        profit_status = f"Profit of £{profit:,.2f}"
+    
+    # Filter triggered rules for PDF - remove loss rule if profit is positive
+    pdf_triggered_rules = []
+    for rule in assessment['triggered_rules']:
+        # Never include "Loss declared this tax year" if profit >= 0
+        if profit >= 0 and "Loss declared this tax year" in rule:
+            continue
+        pdf_triggered_rules.append(rule)
+    
+    # Add data inconsistency note if applicable
+    inconsistency_note = ""
+    if has_data_inconsistency:
+        inconsistency_note = """
+IMPORTANT NOTE ON DATA INCONSISTENCY:
+The 'Loss' checkbox was selected, but the calculated figures show a positive profit. 
+This internal inconsistency is flagged as a risk indicator because HMRC may query 
+declarations that don't match the underlying figures. Please ensure your self-assessment 
+accurately reflects whether you made a profit or loss."""
     
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY,
@@ -349,7 +399,9 @@ IMPORTANT:
 - Only explain risk indicators based on triggered rules
 - Be factual and reference HMRC's known audit patterns
 - Include a document checklist for the taxpayer
-- Keep language professional but accessible"""
+- Keep language professional but accessible
+- NEVER mention "loss declared" if the calculated profit is positive
+- If there's a data inconsistency flag, explain it clearly"""
     ).with_model("openai", "gpt-5.2")
     
     prompt = f"""Generate a detailed HMRC Risk Assessment Report for the following taxpayer data:
@@ -357,14 +409,15 @@ IMPORTANT:
 Tax Year: {assessment['tax_year']}
 Turnover: £{assessment['turnover']:,.2f}
 Total Expenses: £{assessment['total_expenses']:,.2f}
-Profit: £{assessment['profit']:,.2f}
+Financial Result: {profit_status}
 Profit Margin: {assessment['profit_ratio']}%
 
 Risk Score: {assessment['risk_score']}/100
 Risk Band: {assessment['risk_band']}
 
 Triggered Risk Indicators:
-{chr(10).join(['- ' + rule for rule in assessment['triggered_rules']])}
+{chr(10).join(['- ' + rule for rule in pdf_triggered_rules])}
+{inconsistency_note}
 
 Key Ratios:
 - Expense Ratio: {assessment['expense_ratio']}%
@@ -374,7 +427,7 @@ Key Ratios:
 - Mileage Claim Value: £{assessment['mileage_value']:,.2f}
 
 Please provide:
-1. Executive Summary (2-3 sentences)
+1. Executive Summary (2-3 sentences summarizing the key findings based ONLY on the triggered indicators listed above)
 2. Detailed Analysis of Each Triggered Risk Factor
 3. What HMRC Typically Examines in These Cases
 4. Document Checklist (specific records the taxpayer should maintain)
@@ -422,6 +475,17 @@ def create_pdf_report(assessment: dict, ai_content: str) -> tuple:
         leading=14
     )
     
+    warning_style = ParagraphStyle(
+        'Warning',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=12,
+        leading=14,
+        textColor=colors.HexColor('#b45309'),
+        backColor=colors.HexColor('#fef3c7'),
+        borderPadding=8
+    )
+    
     disclaimer_style = ParagraphStyle(
         'Disclaimer',
         parent=styles['Normal'],
@@ -435,10 +499,19 @@ def create_pdf_report(assessment: dict, ai_content: str) -> tuple:
     elements.append(Paragraph("HMRC Risk Assessment Report", title_style))
     elements.append(Spacer(1, 12))
     
+    # Determine profit/loss display
+    profit = assessment['profit']
+    has_data_inconsistency = assessment.get('has_data_inconsistency', False)
+    
+    if profit <= 0:
+        profit_display = f"Loss: £{abs(profit):,.2f}"
+    else:
+        profit_display = f"Profit: £{profit:,.2f}"
+    
     summary_data = [
         ['Tax Year:', assessment['tax_year'], 'Risk Score:', f"{assessment['risk_score']}/100"],
         ['Turnover:', f"£{assessment['turnover']:,.2f}", 'Risk Band:', assessment['risk_band']],
-        ['Total Expenses:', f"£{assessment['total_expenses']:,.2f}", 'Profit:', f"£{assessment['profit']:,.2f}"],
+        ['Total Expenses:', f"£{assessment['total_expenses']:,.2f}", 'Result:', profit_display],
     ]
     
     summary_table = Table(summary_data, colWidths=[1.5*inch, 1.5*inch, 1.5*inch, 1.5*inch])
@@ -455,8 +528,22 @@ def create_pdf_report(assessment: dict, ai_content: str) -> tuple:
     elements.append(summary_table)
     elements.append(Spacer(1, 20))
     
+    # Add data inconsistency warning if applicable
+    if has_data_inconsistency:
+        elements.append(Paragraph("⚠ Data Inconsistency Detected", heading_style))
+        inconsistency_text = """The 'Loss' checkbox was selected in your submission, but the calculated figures show a positive profit. This internal inconsistency has been flagged as a risk indicator because HMRC may query declarations that don't match the underlying figures. Please ensure your self-assessment accurately reflects whether you made a profit or loss."""
+        elements.append(Paragraph(inconsistency_text, warning_style))
+        elements.append(Spacer(1, 10))
+    
+    # Filter triggered rules for PDF - NEVER show "Loss declared this tax year" if profit >= 0
     elements.append(Paragraph("Risk Indicators Triggered", heading_style))
     for rule in assessment['triggered_rules']:
+        # Skip loss rule if profit is positive (the data inconsistency covers this case)
+        if profit >= 0 and "Loss declared this tax year" in rule:
+            continue
+        # Skip consecutive losses rule if profit is positive
+        if profit >= 0 and "Consecutive year losses" in rule:
+            continue
         elements.append(Paragraph(f"• {rule}", body_style))
     
     elements.append(Spacer(1, 20))
@@ -589,6 +676,8 @@ async def submit_assessment(form_data: TaxFormInput):
             home_office_ratio=calculations['home_office_ratio'],
             travel_ratio=calculations['travel_ratio'],
             mileage_value=calculations['mileage_value'],
+            calculated_loss=calculations.get('calculated_loss', False),
+            has_data_inconsistency=calculations.get('has_data_inconsistency', False),
             risk_score=score,
             risk_band=risk_band,
             triggered_rules=triggered_rules
@@ -602,7 +691,8 @@ async def submit_assessment(form_data: TaxFormInput):
             "assessment_id": assessment.id,
             "risk_score": score,
             "risk_band": risk_band,
-            "triggered_rules_count": len(triggered_rules)
+            "triggered_rules_count": len(triggered_rules),
+            "has_data_inconsistency": calculations.get('has_data_inconsistency', False)
         }
     except Exception as e:
         logger.error(f"Assessment submission error: {str(e)}")
