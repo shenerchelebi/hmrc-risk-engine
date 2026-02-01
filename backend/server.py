@@ -478,7 +478,8 @@ Remember: This is NOT tax advice - only risk indicator analysis. Use the exact r
     return response
 
 def create_pdf_report(assessment: dict, ai_content: str) -> tuple:
-    """Create PDF report using ReportLab, returns (filename, content_bytes)"""
+    """Create PDF report using ReportLab, returns (filename, content_bytes)
+    IMPORTANT: Uses PERSISTED values from assessment, does NOT recompute"""
     pdf_filename = f"hmrc_risk_report_{assessment['id']}.pdf"
     
     buffer = BytesIO()
@@ -524,6 +525,17 @@ def create_pdf_report(assessment: dict, ai_content: str) -> tuple:
         borderPadding=8
     )
     
+    note_style = ParagraphStyle(
+        'Note',
+        parent=styles['Normal'],
+        fontSize=10,
+        spaceAfter=10,
+        leading=13,
+        textColor=colors.HexColor('#4b5563'),
+        leftIndent=10,
+        borderPadding=6
+    )
+    
     disclaimer_style = ParagraphStyle(
         'Disclaimer',
         parent=styles['Normal'],
@@ -537,18 +549,25 @@ def create_pdf_report(assessment: dict, ai_content: str) -> tuple:
     elements.append(Paragraph("HMRC Risk Assessment Report", title_style))
     elements.append(Spacer(1, 12))
     
-    # Determine profit/loss display
+    # USE PERSISTED VALUES - do NOT recompute
     profit = assessment['profit']
+    risk_score = assessment['risk_score']  # Persisted score
+    risk_band = assessment['risk_band']  # Persisted band
+    triggered_rules = assessment['triggered_rules']  # Persisted rules
     has_data_inconsistency = assessment.get('has_data_inconsistency', False)
+    contextual_notes = assessment.get('contextual_notes', [])
+    mileage_miles = assessment.get('mileage_miles', assessment.get('mileage_claimed', 0))
     
+    # Determine profit/loss display
     if profit <= 0:
         profit_display = f"Loss: £{abs(profit):,.2f}"
     else:
         profit_display = f"Profit: £{profit:,.2f}"
     
+    # Summary table with PERSISTED values
     summary_data = [
-        ['Tax Year:', assessment['tax_year'], 'Risk Score:', f"{assessment['risk_score']}/100"],
-        ['Turnover:', f"£{assessment['turnover']:,.2f}", 'Risk Band:', assessment['risk_band']],
+        ['Tax Year:', assessment['tax_year'], 'Risk Score:', f"{risk_score}/100"],
+        ['Turnover:', f"£{assessment['turnover']:,.2f}", 'Risk Band:', risk_band],
         ['Total Expenses:', f"£{assessment['total_expenses']:,.2f}", 'Result:', profit_display],
     ]
     
@@ -566,23 +585,60 @@ def create_pdf_report(assessment: dict, ai_content: str) -> tuple:
     elements.append(summary_table)
     elements.append(Spacer(1, 20))
     
+    # Key Ratios section with MILEAGE AS MILES (not pounds)
+    elements.append(Paragraph("Key Ratios", heading_style))
+    ratios_data = [
+        ['Expense Ratio:', f"{assessment['expense_ratio']}%", 'Motor Costs Ratio:', f"{assessment['motor_ratio']}%"],
+        ['Home Office Ratio:', f"{assessment['home_office_ratio']}%", 'Travel Ratio:', f"{assessment['travel_ratio']}%"],
+        ['Profit Margin:', f"{assessment['profit_ratio']}%", 'Mileage:', f"{mileage_miles:,.0f} miles"],
+    ]
+    ratios_table = Table(ratios_data, colWidths=[1.5*inch, 1.3*inch, 1.5*inch, 1.3*inch])
+    ratios_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fafafa')),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#374151')),
+        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 9),
+        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+        ('TOPPADDING', (0, 0), (-1, -1), 8),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e7eb')),
+    ]))
+    elements.append(ratios_table)
+    elements.append(Spacer(1, 15))
+    
     # Add data inconsistency warning if applicable
     if has_data_inconsistency:
-        elements.append(Paragraph("⚠ Data Inconsistency Detected", heading_style))
+        elements.append(Paragraph("Data Inconsistency Detected", heading_style))
         inconsistency_text = """The 'Loss' checkbox was selected in your submission, but the calculated figures show a positive profit. This internal inconsistency has been flagged as a risk indicator because HMRC may query declarations that don't match the underlying figures. Please ensure your self-assessment accurately reflects whether you made a profit or loss."""
         elements.append(Paragraph(inconsistency_text, warning_style))
         elements.append(Spacer(1, 10))
     
+    # Contextual notes (non-scoring)
+    if contextual_notes:
+        elements.append(Paragraph("Contextual Notes", heading_style))
+        for note in contextual_notes:
+            elements.append(Paragraph(f"• {note}", note_style))
+        elements.append(Spacer(1, 10))
+    
     # Filter triggered rules for PDF - NEVER show "Loss declared this tax year" if profit >= 0
     elements.append(Paragraph("Risk Indicators Triggered", heading_style))
-    for rule in assessment['triggered_rules']:
+    
+    # Filter rules using persisted triggered_rules
+    pdf_rules = []
+    for rule in triggered_rules:
         # Skip loss rule if profit is positive (the data inconsistency covers this case)
         if profit >= 0 and "Loss declared this tax year" in rule:
             continue
         # Skip consecutive losses rule if profit is positive
         if profit >= 0 and "Consecutive year losses" in rule:
             continue
-        elements.append(Paragraph(f"• {rule}", body_style))
+        pdf_rules.append(rule)
+    
+    if len(pdf_rules) == 0:
+        elements.append(Paragraph("No predefined risk indicators were triggered based on the figures provided and the current rule set.", body_style))
+    else:
+        for rule in pdf_rules:
+            elements.append(Paragraph(f"• {rule}", body_style))
     
     elements.append(Spacer(1, 20))
     elements.append(Paragraph("Detailed Analysis", heading_style))
@@ -597,6 +653,21 @@ def create_pdf_report(assessment: dict, ai_content: str) -> tuple:
             else:
                 clean_para = para.replace('**', '').replace('*', '').replace('- ', '• ')
                 elements.append(Paragraph(clean_para, body_style))
+    
+    # What Could Increase HMRC Attention section
+    elements.append(Spacer(1, 15))
+    elements.append(Paragraph("What Could Increase HMRC Attention in Future Years", heading_style))
+    future_risks = [
+        "Sudden changes in expense ratios year-on-year",
+        "Consecutive years of declared losses",
+        "Incomplete or missing mileage records",
+        "Large fluctuations in turnover without clear explanation",
+        "Significant changes in profit margins",
+        "Inconsistencies between declared figures and supporting documentation"
+    ]
+    elements.append(Paragraph("The following factors may increase scrutiny in future tax years (for educational purposes only):", body_style))
+    for risk in future_risks:
+        elements.append(Paragraph(f"• {risk}", body_style))
     
     elements.append(Spacer(1, 30))
     elements.append(Paragraph("Important Legal Notice", heading_style))
