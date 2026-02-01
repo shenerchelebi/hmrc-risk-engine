@@ -115,8 +115,10 @@ class TaxAssessment(BaseModel):
     home_office_ratio: float
     travel_ratio: float
     mileage_value: float
+    mileage_miles: float = 0  # Store actual miles for display
     calculated_loss: bool = False  # True if profit <= 0
     has_data_inconsistency: bool = False  # True if loss_checkbox but profit > 0
+    contextual_notes: List[str] = []  # Non-scoring contextual notes
     risk_score: int
     risk_band: str
     triggered_rules: List[str]
