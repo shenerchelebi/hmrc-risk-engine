@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
@@ -9,7 +9,8 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, ArrowLeft, HelpCircle, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Shield, ArrowLeft, HelpCircle, Loader2, AlertTriangle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -29,11 +30,28 @@ const AssessmentPage = () => {
     phone_internet: "",
     travel_subsistence: "",
     marketing: "",
-    loss_this_year: false,
-    loss_last_year: false,
+    loss_this_year: false,  // Default is false
+    loss_last_year: false,  // Default is false
     other_income: false,
     email: ""
   });
+
+  // DERIVED PROFIT: Computed from turnover - total_expenses
+  const calculatedProfit = useMemo(() => {
+    const turnover = parseFloat(formData.turnover) || 0;
+    const expenses = parseFloat(formData.total_expenses) || 0;
+    return turnover - expenses;
+  }, [formData.turnover, formData.total_expenses]);
+
+  // Validation: Check for data inconsistency (loss checkbox true but profit positive)
+  const hasDataInconsistency = useMemo(() => {
+    return formData.loss_this_year && calculatedProfit > 0;
+  }, [formData.loss_this_year, calculatedProfit]);
+
+  // Check if form can be submitted
+  const canSubmit = useMemo(() => {
+    return !hasDataInconsistency && formData.email && formData.turnover;
+  }, [hasDataInconsistency, formData.email, formData.turnover]);
 
   const handleChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -41,6 +59,13 @@ const AssessmentPage = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    
+    // Block submission if data inconsistency exists
+    if (hasDataInconsistency) {
+      toast.error("Please resolve the data inconsistency before submitting");
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -76,7 +101,7 @@ const AssessmentPage = () => {
     }
   };
 
-  const InputWithTooltip = ({ id, label, tooltip, value, onChange, placeholder, type = "number", required = false }) => (
+  const InputWithTooltip = ({ id, label, tooltip, value, onChange, placeholder, type = "number", required = false, readOnly = false }) => (
     <div className="space-y-2">
       <div className="flex items-center gap-2">
         <Label htmlFor={id} className="text-sm font-medium text-zinc-300">
@@ -99,11 +124,17 @@ const AssessmentPage = () => {
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="h-12 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-600 focus:border-teal-500 focus:ring-teal-500"
+        readOnly={readOnly}
+        className={`h-12 bg-zinc-900 border-zinc-700 text-white placeholder:text-zinc-600 focus:border-teal-500 focus:ring-teal-500 ${readOnly ? 'bg-zinc-800 cursor-not-allowed' : ''}`}
         data-testid={`input-${id}`}
       />
     </div>
   );
+
+  // Format profit display
+  const profitDisplay = calculatedProfit >= 0 
+    ? `£${calculatedProfit.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    : `-£${Math.abs(calculatedProfit).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
@@ -201,6 +232,33 @@ const AssessmentPage = () => {
                     onChange={(v) => handleChange('total_expenses', v)}
                     placeholder="£"
                   />
+                </div>
+                
+                {/* Derived Profit Field - Read Only */}
+                <div className="p-4 rounded-lg bg-zinc-800/50 border border-zinc-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Label className="text-sm font-medium text-zinc-400">Calculated Profit/Loss</Label>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <HelpCircle className="h-4 w-4 text-zinc-600 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent className="bg-zinc-800 border-zinc-700 text-zinc-200">
+                            <p>Automatically calculated as Turnover minus Total Expenses</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                    <span className={`text-lg font-semibold ${calculatedProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`} data-testid="calculated-profit">
+                      {profitDisplay}
+                    </span>
+                  </div>
+                  {calculatedProfit <= 0 && (
+                    <p className="text-xs text-amber-500 mt-2">
+                      Your figures show a loss. This will be factored into the risk assessment.
+                    </p>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -303,15 +361,26 @@ const AssessmentPage = () => {
                 <CardDescription className="text-zinc-500">Important context for your assessment</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Data Inconsistency Warning */}
+                {hasDataInconsistency && (
+                  <Alert className="bg-amber-500/10 border-amber-500/50 text-amber-400">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertDescription className="ml-2">
+                      <strong>Data inconsistency:</strong> You selected 'loss', but your figures show a profit of {profitDisplay}. 
+                      Please untick the loss checkbox or correct your figures before submitting.
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
                 <div className="flex items-center space-x-3">
                   <Checkbox 
                     id="loss_this_year" 
                     checked={formData.loss_this_year}
                     onCheckedChange={(v) => handleChange('loss_this_year', v)}
-                    className="border-zinc-600 data-[state=checked]:bg-teal-600"
+                    className={`border-zinc-600 data-[state=checked]:bg-teal-600 ${hasDataInconsistency ? 'border-amber-500' : ''}`}
                     data-testid="checkbox-loss-this-year"
                   />
-                  <Label htmlFor="loss_this_year" className="cursor-pointer text-zinc-300">
+                  <Label htmlFor="loss_this_year" className={`cursor-pointer ${hasDataInconsistency ? 'text-amber-400' : 'text-zinc-300'}`}>
                     I'm declaring a loss this tax year
                   </Label>
                 </div>
@@ -346,8 +415,12 @@ const AssessmentPage = () => {
             <div className="flex flex-col items-center gap-4 pt-4">
               <Button
                 type="submit"
-                disabled={isSubmitting}
-                className="bg-teal-600 hover:bg-teal-500 text-white px-12 py-6 text-lg rounded-xl w-full md:w-auto transition-all active:scale-95"
+                disabled={isSubmitting || !canSubmit}
+                className={`px-12 py-6 text-lg rounded-xl w-full md:w-auto transition-all active:scale-95 ${
+                  canSubmit 
+                    ? 'bg-teal-600 hover:bg-teal-500 text-white' 
+                    : 'bg-zinc-700 text-zinc-400 cursor-not-allowed'
+                }`}
                 data-testid="submit-assessment-btn"
               >
                 {isSubmitting ? (
@@ -355,6 +428,8 @@ const AssessmentPage = () => {
                     <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     Analysing...
                   </>
+                ) : hasDataInconsistency ? (
+                  "Resolve Data Inconsistency to Continue"
                 ) : (
                   "Get Your Free Risk Score"
                 )}
