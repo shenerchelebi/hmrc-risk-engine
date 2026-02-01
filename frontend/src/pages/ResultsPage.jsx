@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Shield, ArrowLeft, FileText, Lock, CheckCircle, AlertTriangle, Loader2, Building2, Info, SlidersHorizontal, RotateCcw, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Shield, ArrowLeft, FileText, Lock, CheckCircle, AlertTriangle, Loader2, Building2, Info, SlidersHorizontal, RotateCcw, TrendingUp, TrendingDown, Minus, Eye } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
@@ -16,6 +16,12 @@ const API = `${BACKEND_URL}/api`;
 const ResultsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // Preview mode: enabled via ?preview=1 or non-production environment
+  const isPreviewMode = useMemo(() => {
+    return searchParams.get('preview') === '1' || process.env.NODE_ENV !== 'production';
+  }, [searchParams]);
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
