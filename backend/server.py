@@ -371,15 +371,19 @@ def calculate_risk_score(data: dict) -> tuple:
     }
 
 async def generate_ai_report(assessment: dict) -> str:
-    """Generate AI-powered risk report content"""
+    """Generate AI-powered risk report content using PERSISTED values from assessment"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     
-    # Determine profit/loss status for accurate reporting
+    # USE PERSISTED VALUES - do NOT recompute
     profit = assessment['profit']
+    risk_score = assessment['risk_score']  # Use persisted score
+    risk_band = assessment['risk_band']  # Use persisted band
+    triggered_rules = assessment['triggered_rules']  # Use persisted rules
     has_data_inconsistency = assessment.get('has_data_inconsistency', False)
-    loss_checkbox = assessment.get('loss_this_year', False)
+    contextual_notes = assessment.get('contextual_notes', [])
+    mileage_miles = assessment.get('mileage_miles', assessment.get('mileage_claimed', 0))
     
-    # Build accurate status description
+    # Determine profit/loss status for accurate reporting
     if profit <= 0:
         profit_status = f"Loss of £{abs(profit):,.2f}"
     else:
@@ -387,11 +391,20 @@ async def generate_ai_report(assessment: dict) -> str:
     
     # Filter triggered rules for PDF - remove loss rule if profit is positive
     pdf_triggered_rules = []
-    for rule in assessment['triggered_rules']:
+    for rule in triggered_rules:
         # Never include "Loss declared this tax year" if profit >= 0
         if profit >= 0 and "Loss declared this tax year" in rule:
             continue
+        # Skip consecutive losses rule if profit is positive
+        if profit >= 0 and "Consecutive year losses" in rule:
+            continue
         pdf_triggered_rules.append(rule)
+    
+    # Build executive summary based on whether rules were triggered
+    if len(pdf_triggered_rules) == 0:
+        executive_summary_guidance = "No predefined risk indicators were triggered based on the figures provided and the current rule set."
+    else:
+        executive_summary_guidance = f"{len(pdf_triggered_rules)} risk indicator(s) were triggered. See details below."
     
     # Add data inconsistency note if applicable
     inconsistency_note = ""
@@ -403,19 +416,27 @@ This internal inconsistency is flagged as a risk indicator because HMRC may quer
 declarations that don't match the underlying figures. Please ensure your self-assessment 
 accurately reflects whether you made a profit or loss."""
     
+    # Add contextual notes
+    contextual_section = ""
+    if contextual_notes:
+        contextual_section = "\n\nContextual Notes (not risk triggers):\n" + "\n".join(['- ' + note for note in contextual_notes])
+    
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY,
         session_id=f"report-{assessment['id']}",
         system_message="""You are a UK tax compliance analyst. Generate a professional risk assessment report based on the provided data. 
 
-IMPORTANT: 
+CRITICAL INSTRUCTIONS:
+- Use ONLY the exact risk score, risk band, and triggered rules provided - do NOT invent or change them
 - Do NOT provide tax advice
-- Only explain risk indicators based on triggered rules
+- Only explain risk indicators based on triggered rules provided
 - Be factual and reference HMRC's known audit patterns
 - Include a document checklist for the taxpayer
 - Keep language professional but accessible
 - NEVER mention "loss declared" if the calculated profit is positive
-- If there's a data inconsistency flag, explain it clearly"""
+- If there's a data inconsistency flag, explain it clearly
+- Avoid absolute claims like "no HMRC risk" - use "no predefined risk indicators were triggered"
+- For mileage, always express as miles (e.g., "5,000 miles") not pounds"""
     ).with_model("openai", "gpt-5.2")
     
     prompt = f"""Generate a detailed HMRC Risk Assessment Report for the following taxpayer data:
@@ -426,28 +447,31 @@ Total Expenses: £{assessment['total_expenses']:,.2f}
 Financial Result: {profit_status}
 Profit Margin: {assessment['profit_ratio']}%
 
-Risk Score: {assessment['risk_score']}/100
-Risk Band: {assessment['risk_band']}
+PERSISTED RISK ASSESSMENT (use these exact values):
+Risk Score: {risk_score}/100
+Risk Band: {risk_band}
 
 Triggered Risk Indicators:
-{chr(10).join(['- ' + rule for rule in pdf_triggered_rules])}
+{chr(10).join(['- ' + rule for rule in pdf_triggered_rules]) if pdf_triggered_rules else '- None triggered'}
 {inconsistency_note}
+{contextual_section}
 
 Key Ratios:
 - Expense Ratio: {assessment['expense_ratio']}%
 - Motor Costs Ratio: {assessment['motor_ratio']}%
 - Home Office Ratio: {assessment['home_office_ratio']}%
 - Travel Ratio: {assessment['travel_ratio']}%
-- Mileage Claim Value: £{assessment['mileage_value']:,.2f}
+- Mileage Claimed: {mileage_miles:,.0f} miles
 
 Please provide:
-1. Executive Summary (2-3 sentences summarizing the key findings based ONLY on the triggered indicators listed above)
-2. Detailed Analysis of Each Triggered Risk Factor
+1. Executive Summary (Start with: "{executive_summary_guidance}" then add 1-2 sentences of context)
+2. Detailed Analysis of Each Triggered Risk Factor (if none, state "No risk factors were triggered based on the current rule set")
 3. What HMRC Typically Examines in These Cases
 4. Document Checklist (specific records the taxpayer should maintain)
 5. General Recommendations for Record-Keeping
+6. What Could Increase HMRC Attention in Future Years (educational section with examples like: sudden expense ratio changes, consecutive losses, incomplete mileage records, large year-on-year fluctuations)
 
-Remember: This is NOT tax advice - only risk indicator analysis."""
+Remember: This is NOT tax advice - only risk indicator analysis. Use the exact risk score ({risk_score}) and band ({risk_band}) provided."""
 
     user_message = UserMessage(text=prompt)
     response = await chat.send_message(user_message)
