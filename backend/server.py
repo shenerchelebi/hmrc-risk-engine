@@ -54,7 +54,8 @@ S3_BUCKET_NAME = os.environ.get('S3_BUCKET_NAME', 'hmrc-reports')
 S3_REGION = os.environ.get('S3_REGION', 'eu-west-2')
 
 # Password hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# Use argon2 for password hashing (avoids bcrypt 4.x compatibility issues)
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 # PDF storage directory
 PDF_DIR = ROOT_DIR / 'pdfs'
