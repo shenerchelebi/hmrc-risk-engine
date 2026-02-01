@@ -690,8 +690,10 @@ async def submit_assessment(form_data: TaxFormInput):
             home_office_ratio=calculations['home_office_ratio'],
             travel_ratio=calculations['travel_ratio'],
             mileage_value=calculations['mileage_value'],
+            mileage_miles=calculations.get('mileage_miles', form_data.mileage_claimed),
             calculated_loss=calculations.get('calculated_loss', False),
             has_data_inconsistency=calculations.get('has_data_inconsistency', False),
+            contextual_notes=calculations.get('contextual_notes', []),
             risk_score=score,
             risk_band=risk_band,
             triggered_rules=triggered_rules
