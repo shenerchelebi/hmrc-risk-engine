@@ -18,10 +18,10 @@ const ResultsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  // Preview mode: enabled via ?preview=1 or non-production environment
-  const isPreviewMode = useMemo(() => {
-    return searchParams.get('preview') === '1' || process.env.NODE_ENV !== 'production';
-  }, [searchParams]);
+  // Preview mode flag
+  const isPreview = searchParams.get("preview") === "1";
+  const allowPreview = isPreview || process.env.NODE_ENV !== "production";
+  
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
