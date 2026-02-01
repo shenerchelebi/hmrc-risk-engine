@@ -169,6 +169,16 @@ const ResultsPage = () => {
 
   return (
     <div className="min-h-screen bg-[#0a0a0f]">
+      {/* Preview Mode Banner */}
+      {isPreview && (
+        <div className="bg-amber-900/30 border-b border-amber-700/50 px-6 py-2">
+          <div className="max-w-5xl mx-auto flex items-center justify-center gap-2">
+            <Eye className="h-4 w-4 text-amber-400" />
+            <span className="text-amber-400 text-sm font-medium">Preview Mode – Payment Disabled</span>
+          </div>
+        </div>
+      )}
+      
       <header className="bg-[#0d0d14] border-b border-zinc-800/80 px-6 md:px-12 py-4">
         <div className="max-w-5xl mx-auto flex items-center justify-between">
           <button onClick={() => navigate('/')} className="flex items-center gap-2 text-zinc-500 hover:text-white transition-colors" data-testid="back-home-btn">
