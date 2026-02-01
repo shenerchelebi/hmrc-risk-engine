@@ -246,6 +246,7 @@ def calculate_risk_score(data: dict) -> tuple:
     """Calculate HMRC risk score based on deterministic rules"""
     score = 0
     triggered_rules = []
+    contextual_notes = []  # Non-scoring notes for context
     
     turnover = data['turnover']
     expenses = data['total_expenses']
@@ -280,6 +281,10 @@ def calculate_risk_score(data: dict) -> tuple:
         elif profit_ratio < 10:
             score += 10
             triggered_rules.append("Profit between 5-10% of turnover (+10 points)")
+        
+        # HIGH PROFIT MARGIN CONTEXT (no points added)
+        if profit_ratio > 60:
+            contextual_notes.append("High profit margin (>{:.0f}%): High profit margins may be normal depending on trade type. HMRC typically considers sector norms rather than margin alone.".format(profit_ratio))
     
     if expense_ratio > 70:
         score += 18
@@ -335,6 +340,11 @@ def calculate_risk_score(data: dict) -> tuple:
         score += 6
         triggered_rules.append("Multiple rounded figures detected (+6 points)")
     
+    # TRANSPARENCY NOTE: Insufficient category breakdown (not a risk trigger)
+    total_categorized = motor_costs + home_office + travel + data.get('phone_internet', 0) + data.get('marketing', 0)
+    if expenses > 0 and total_categorized < expenses * 0.5:
+        contextual_notes.append("Transparency note: Insufficient category breakdown provided. This is not treated as an HMRC risk indicator unless misclassification or inconsistency is detected.")
+    
     score = min(score, 100)
     
     if score <= 24:
@@ -352,8 +362,10 @@ def calculate_risk_score(data: dict) -> tuple:
         'home_office_ratio': round(home_office_ratio, 2),
         'travel_ratio': round(travel_ratio, 2),
         'mileage_value': round(mileage_value, 2),
+        'mileage_miles': mileage,  # Store actual miles
         'calculated_loss': calculated_loss,
-        'has_data_inconsistency': has_data_inconsistency
+        'has_data_inconsistency': has_data_inconsistency,
+        'contextual_notes': contextual_notes
     }
 
 async def generate_ai_report(assessment: dict) -> str:
