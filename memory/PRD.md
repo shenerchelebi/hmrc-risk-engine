@@ -1,7 +1,16 @@
-# HMRC Red-Flag Detector - Product Requirements Document
+# HMRC Red-Flag Detector PRO - Product Requirements Document
 
 ## Original Problem Statement
 Build a production-ready SaaS web application called "HMRC Red-Flag Detector" - an automated HMRC risk-indicator for UK Self-Assessment taxpayers.
+
+**V2 Requirements (HMRC Risk Engine PRO):**
+- Expanded inputs (other income types, capital allowances, loss carry-forward)
+- Industry-aware risk logic with mandatory industry selector
+- Risk transparency panel explaining contributing factors
+- Risk simulation tool (what-if analysis)
+- Upgraded PDF report with industry context
+- Light user accounts (magic link login)
+- New pricing: £29.99 (V2 PRO)
 
 ## Architecture
 
@@ -13,21 +22,24 @@ Build a production-ready SaaS web application called "HMRC Red-Flag Detector" - 
 - **AI**: OpenAI GPT-5.2 (via Emergent LLM key)
 - **Email**: Brevo (configured, requires API key)
 - **File Storage**: S3-compatible (configured) + local fallback
+- **Password Hashing**: Passlib with Argon2 (migrated from bcrypt)
 - **Design**: Professional dark theme
 
 ### Core Features
-1. Tax assessment form with 14+ fields
-2. Deterministic risk scoring engine (12+ indicators)
+1. Tax assessment form with 14+ fields + V2 expanded fields
+2. Industry-aware risk scoring engine (12+ indicators)
 3. Risk bands: LOW (0-24), MODERATE (25-49), HIGH (50-100)
-4. Stripe checkout for £19.99 PDF report
+4. Stripe checkout for £29.99 V2 PRO report
 5. AI-powered PDF report generation
 6. Admin dashboard with JWT authentication
 7. Email delivery of reports
+8. Risk simulation tool (what-if analysis)
+9. Magic link user authentication
 
 ## What's Been Implemented
 
 ### December 2024
-- ✅ Complete SaaS application with dark theme UI
+- ✅ Complete V1 SaaS application with dark theme UI
 - ✅ Tax assessment form with all required fields
 - ✅ Deterministic HMRC risk scoring engine
 - ✅ Risk score calculation with 12+ indicators
@@ -35,6 +47,12 @@ Build a production-ready SaaS web application called "HMRC Red-Flag Detector" - 
 - ✅ AI-powered PDF report generation
 - ✅ Admin dashboard with JWT auth
 - ✅ Full admin login system with registration
+- ✅ V2 Industry-aware risk logic
+- ✅ V2 Risk transparency panel
+- ✅ V2 Risk simulation API (working and tested)
+- ✅ V2 Expanded inputs (other income, capital allowances, loss carry-forward)
+- ✅ Preview mode for ResultsPage (bypass payment for UI testing)
+- ✅ PHV/mileage tooltip rule (industry-specific contextual note)
 
 ### Bug Fixes Applied
 - ✅ Loss indicator logic: Only triggers when profit ≤ 0 OR loss_checkbox=true
@@ -45,20 +63,23 @@ Build a production-ready SaaS web application called "HMRC Red-Flag Detector" - 
 - ✅ High profit margin: Contextual note without risk points
 - ✅ Legal safety language: "No predefined risk indicators were triggered"
 - ✅ PDF uses persisted values (not recomputed)
-- ✅ Added "What Could Increase HMRC Attention" educational section
+- ✅ Backend bcrypt → passlib/argon2 migration (fixed hashing errors)
+- ✅ PHV motor costs exception (contextual note instead of risk indicator)
 
 ## User Personas
 1. **Self-employed freelancers** - Checking risk before filing
 2. **Small business owners** - Understanding HMRC scrutiny patterns
 3. **Tax preparers** - Quick risk screening for clients
+4. **PHV/Taxi drivers** - High motor costs tracking
 
 ## Core Requirements (Static)
 - Secure web form for tax data entry
 - Instant risk score calculation
 - FREE tier: Risk band only
-- PAID tier (£19.99): Full PDF report
+- PAID tier (£29.99): Full PDF report
 - Legal disclaimer on all pages
 - Admin dashboard for case management
+- Industry-specific risk thresholds
 
 ## P0/P1/P2 Feature Backlog
 
@@ -67,47 +88,42 @@ Build a production-ready SaaS web application called "HMRC Red-Flag Detector" - 
 - [x] Payment integration
 - [x] PDF generation
 - [x] Admin dashboard
+- [x] Preview mode for ResultsPage
+- [x] PHV/mileage tooltip rule
 
-### P1 (Important)
+### P1 (In Progress)
+- [ ] UI/UX Polish for V2 (Results page visual hierarchy)
+- [ ] V2 User Accounts (magic link login flow + dashboard)
+- [ ] V2 Admin Dashboard (industry filters, conversion stats)
+
+### P2 (Future)
+- [ ] V2 Pricing Update (£29.99–£39.99 configurable)
 - [ ] Brevo email integration (requires API key from user)
 - [ ] S3 storage configuration (requires AWS credentials)
-- [ ] Email verification flow
-
-### P2 (Nice to Have)
 - [ ] Multiple tax year comparison
-- [ ] Risk trend analysis
-- [ ] Export to accountant format
 - [ ] White-label options
-
-## Environment Variables Required
-```
-# Backend (.env)
-MONGO_URL=mongodb://localhost:27017
-DB_NAME=test_database
-EMERGENT_LLM_KEY=<provided>
-STRIPE_API_KEY=<test key provided>
-BREVO_API_KEY=<user needs to provide>
-SENDER_EMAIL=noreply@hmrc-detector.com
-JWT_SECRET_KEY=<generated>
-S3_ENDPOINT_URL=<optional>
-S3_ACCESS_KEY=<optional>
-S3_SECRET_KEY=<optional>
-S3_BUCKET_NAME=hmrc-reports
-```
 
 ## API Endpoints
 - POST /api/assessment/submit - Submit tax assessment
-- GET /api/assessment/{id} - Get assessment details
+- GET /api/assessment/{assessment_id} - Get assessment details
+- POST /api/assessment/simulate - Run what-if simulation
 - POST /api/checkout/create - Create Stripe checkout
 - GET /api/checkout/status/{session_id} - Check payment status
-- GET /api/report/download/{id} - Download PDF
+- GET /api/report/download/{assessment_id} - Download PDF
+- GET /api/industries - Get industry list
+- GET /api/pricing - Get pricing info
+- POST /api/auth/magic-link - Request magic link login
+- POST /api/auth/verify - Verify magic link token
+- GET /api/user/assessments - Get user's past assessments
 - POST /api/admin/register - Register admin
 - POST /api/admin/login - Admin login
 - GET /api/admin/assessments - List all assessments
 - GET /api/admin/stats - Dashboard stats
+- GET /api/admin/transactions - List transactions
 
 ## Next Tasks
-1. Configure Brevo API key for email delivery
-2. Set up S3 credentials for cloud PDF storage
-3. Test full payment flow with Stripe test cards
-4. Add rate limiting for API endpoints
+1. UI/UX Polish for V2 ResultsPage (visual hierarchy improvements)
+2. Implement V2 user accounts (magic link flow)
+3. Enhance admin dashboard with industry filters
+4. Configure Brevo API key for email delivery
+5. Test full payment flow with Stripe test cards
