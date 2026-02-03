@@ -179,13 +179,23 @@ const ResultsPage = () => {
   const simTriggered = simResult ? simResult.triggered_indicators : triggeredIndicators;
 
   return (
-    <div className="min-h-screen bg-[#0a0a0f]">
-      {/* Preview Mode Banner */}
+    <div className="min-h-screen bg-[#0a0a0f] relative">
+      {/* Preview Mode Watermark Overlay */}
       {isPreview && (
-        <div className="bg-amber-900/30 border-b border-amber-700/50 px-6 py-2">
-          <div className="max-w-5xl mx-auto flex items-center justify-center gap-2">
-            <Eye className="h-4 w-4 text-amber-400" />
-            <span className="text-amber-400 text-sm font-medium">Preview Mode – Payment Disabled</span>
+        <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden">
+          <div className="absolute transform rotate-[-30deg] text-amber-500/10 text-[120px] font-bold whitespace-nowrap select-none">
+            PREVIEW ONLY
+          </div>
+        </div>
+      )}
+      
+      {/* Preview Mode Banner - Sticky */}
+      {isPreview && (
+        <div className="sticky top-0 z-40 bg-amber-900/90 border-b border-amber-600 px-6 py-3">
+          <div className="max-w-5xl mx-auto flex items-center justify-center gap-3">
+            <Eye className="h-5 w-5 text-amber-300" />
+            <span className="text-amber-100 font-semibold">PREVIEW MODE</span>
+            <span className="text-amber-300 text-sm">– Payment & PDF Download Disabled – For UI Testing Only</span>
           </div>
         </div>
       )}
