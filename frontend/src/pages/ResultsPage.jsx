@@ -83,6 +83,12 @@ const ResultsPage = () => {
   };
 
   const handlePurchase = async () => {
+    // SECURITY: Block ALL Stripe API calls in preview mode
+    if (isPreview) {
+      toast.error("Payment disabled in preview mode");
+      return;
+    }
+    
     setCheckoutLoading(true);
     try {
       const response = await axios.post(`${API}/checkout/create`, {
