@@ -110,7 +110,11 @@ const AssessmentPage = () => {
         loss_carry_forward_amount: parseFloat(formData.loss_carry_forward_amount) || 0
       };
 
-      const response = await axios.post(`${API}/assessment/submit`, submitData);
+      // Include auth token if user is logged in (links assessment to user account)
+      const token = localStorage.getItem('user_token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+
+      const response = await axios.post(`${API}/assessment/submit`, submitData, { headers });
       if (response.data.success) {
         toast.success("Assessment complete!");
         navigate(`/results/${response.data.assessment_id}`);
