@@ -1173,8 +1173,9 @@ async def get_user_assessments(user: dict = Depends(get_current_user_optional)):
     if not user:
         raise HTTPException(status_code=401, detail="Login required")
     
+    # Find assessments by user_id OR by email (for assessments created before login)
     assessments = await db.assessments_v2.find(
-        {"user_id": user['id']},
+        {"$or": [{"user_id": user['id']}, {"email": user['email']}]},
         {"_id": 0, "id": 1, "tax_year": 1, "industry_name": 1, "risk_score": 1, "risk_band": 1, "payment_status": 1, "created_at": 1}
     ).sort("created_at", -1).to_list(100)
     
