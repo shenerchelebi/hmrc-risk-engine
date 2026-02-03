@@ -104,6 +104,11 @@ const ResultsPage = () => {
   };
 
   const handleDownload = () => {
+    // SECURITY: Block download attempts in preview mode (backend also enforces this)
+    if (isPreview) {
+      toast.error("PDF download disabled in preview mode");
+      return;
+    }
     window.open(`${API}/report/download/${id}`, '_blank');
   };
 
