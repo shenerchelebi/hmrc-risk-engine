@@ -99,8 +99,15 @@ Build a production-ready SaaS web application called "HMRC Red-Flag Detector" - 
   - [x] Benchmark comparison: Banded sector range bars with disclaimer
   - [x] Paywall: 3-bullet value stack
 
-### P1 (In Progress)
-- [ ] V2 User Accounts (magic link login flow + dashboard)
+### P2 (Complete)
+- [x] V2 User Accounts:
+  - [x] Magic link authentication (email-only, no passwords)
+  - [x] User dashboard with past assessments
+  - [x] PDF access gated by payment status
+  - [x] Status badges (Preview / PDF Ready)
+  - [x] Assessment linking to logged-in users
+
+### P3 (In Progress)
 - [ ] V2 Admin Dashboard (industry filters, conversion stats)
 - [ ] Compare to Industry Average (banded benchmarking with disclaimers)
 
