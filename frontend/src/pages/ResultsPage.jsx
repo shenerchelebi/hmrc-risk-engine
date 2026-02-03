@@ -18,9 +18,14 @@ const ResultsPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
-  // Preview mode flag
-  const isPreview = searchParams.get("preview") === "1";
-  const allowPreview = isPreview || process.env.NODE_ENV !== "production";
+  // Preview mode - STRICT CONTROLS
+  // 1. Only enabled via URL param (no persistence)
+  // 2. Blocked in production unless REACT_APP_ALLOW_PREVIEW=true
+  // 3. Frontend-only - backend still enforces payment for PDF
+  const previewParam = searchParams.get("preview") === "1";
+  const isNonProd = process.env.NODE_ENV !== "production";
+  const allowlistEnabled = process.env.REACT_APP_ALLOW_PREVIEW === "true";
+  const isPreview = previewParam && (isNonProd || allowlistEnabled);
   
   const [assessment, setAssessment] = useState(null);
   const [loading, setLoading] = useState(true);
