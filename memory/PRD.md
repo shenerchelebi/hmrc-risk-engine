@@ -107,9 +107,18 @@ Build a production-ready SaaS web application called "HMRC Red-Flag Detector" - 
   - [x] Status badges (Preview / PDF Ready)
   - [x] Assessment linking to logged-in users
 
-### P3 (In Progress)
-- [ ] V2 Admin Dashboard (industry filters, conversion stats)
-- [ ] Compare to Industry Average (banded benchmarking with disclaimers)
+### P3 (Complete)
+- [x] V2 Admin Dashboard:
+  - [x] Admin-only access (server-side enforced via JWT)
+  - [x] Overview metrics (total, paid, preview, conversion rate, revenue)
+  - [x] Filters (industry, risk band, payment status, date range)
+  - [x] Read-only assessments table
+  - [x] Read-only payments table
+  - [x] Risk distribution breakdown
+  - [x] Top industries breakdown
+
+### P4 (Backlog)
+- [ ] Industry Average Comparison (banded benchmarking - already implemented in ResultsPage)
 
 ### P2 (Future)
 - [ ] V2 Pricing Update (£29.99–£39.99 configurable)
