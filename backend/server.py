@@ -1113,7 +1113,7 @@ async def request_magic_link(request: MagicLinkRequest):
     )
     
     # In production, send email. For now, return token for testing
-    magic_link = f"https://taxauditshield.preview.emergentagent.com/auth/verify?token={magic_token}"
+    magic_link = f"https://taxscan-4.preview.emergentagent.com/auth/verify?token={magic_token}"
     
     email_sent = await send_magic_link_email(email, magic_link)
     

@@ -1,0 +1,178 @@
+<analysis>**original_problem_statement:**
+The user wants to build a production-ready SaaS web application called “HMRC Red-Flag Detector”.
+
+**V1 Requirements:**
+- A secure web form for users to input their UK Self-Assessment tax figures.
+- A deterministic scoring engine to calculate an HMRC red-flag score based on the inputs.
+- Display a free result (LOW, MODERATE, HIGH risk badge).
+- Offer a paid unlock for a full PDF report for £19.99 via Stripe.
+- After payment, generate a 2-3 page PDF report using an AI API (OpenAI or Claude) explaining the risk factors.
+- Deliver the PDF via a secure download link and email.
+- An admin dashboard to view all cases, scores, and payment statuses.
+- Tech stack: React/FastAPI/Postgres (agent used MongoDB), Stripe, an email provider, and an AI provider.
+- Include legal disclaimers.
+
+**V2 (HMRC Risk Engine PRO) Requirements:**
+- **Expanded Inputs:** Add fields for other income types (employment, rental, etc.), capital allowances, and loss carry-forward.
+- **Industry-Aware Logic:** Add a mandatory Industry / Trade selector that adjusts risk thresholds.
+- **Risk Transparency Panel:** A UI panel to explain what factors affected the score.
+- **Risk Simulation Tool:** Interactive controls to let users see how changing figures affects their score in real-time.
+- **Upgraded PDF Report:** Include industry context and more detailed breakdowns.
+- **Light User Accounts:** Email + magic link login to view past assessments.
+- **New Pricing:** V2 report to be priced at £29.99–£39.99.
+- **Admin Dashboard V2:** Add filtering by industry and conversion stats.
+
+**User's preferred language**: English
+
+**what currently exists?**
+A full-stack application with a FastAPI backend and a React frontend. V1 is largely complete and functional, including the data entry form, scoring engine, a results page with a Stripe paywall, AI-powered PDF report generation, and email delivery. A backend  hashing issue was resolved by migrating to  with , and the backend is now stable. The foundation for V2 features (industry selection, expanded inputs, simulation) has been added to the backend () and the frontend pages have been created or updated, but the UI/UX polish and full integration are pending.
+
+**Last working item**:
+-   **Last item agent was working**: Implementing a preview mode for the . This is required to bypass the payment wall by adding a  query parameter to the URL, which will allow for UI/UX polishing without having to complete a payment flow each time.
+-   **Status**: IN PROGRESS
+-   **Agent Testing Done**: N
+-   **Which testing method agent to use?**: screenshot tool. After the fix is applied, the agent should navigate to  and take a screenshot to verify that the page renders correctly, shows a Preview Mode badge, and has the payment buttons disabled.
+-   **User Testing Done**: N
+
+**All Pending/In progress Issue list**:
+-   **Issue 1**: (P0) Implement preview mode for .
+-   **Issue 2**: (P1) Implement PHV/mileage-specific information tooltip.
+
+**Issues Detail**:
+-   **Issue 1**:
+    -   **Attempted fixes**: The agent has been stuck in a loop of viewing the  file instead of applying the necessary edits, despite multiple explicit instructions from the user on what code to add and where.
+    -   **Next debug checklist**:
+        1.  **Edit ** using .
+        2.  Import  from .
+        3.  At the top of the  component, add the logic to read the query parameter:
+            
+        4.  Locate the payment gate logic that redirects unauthorized users.
+        5.  Modify the condition to allow access in preview mode:
+            
+        6.  Conditionally render a Preview Mode badge at the top of the page:
+            
+        7.  Conditionally disable the checkout button:
+            
+    -   **Why fix this issue and what will be achieved with the fix?**: This is a blocker for all frontend UI/UX work on the , as it's currently inaccessible without payment. Fixing it will enable rapid visual iteration.
+    -   **Status**: IN PROGRESS
+    -   **Is recurring issue?**: Y
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on other issue**: None
+
+-   **Issue 2**:
+    -   **Description**: Implement a rule for the 'PHV' industry: If  is PHV,  is 0, and  are greater than 0, show an informational tooltip instead of flagging it as a risk.
+    -   **Status**: NOT STARTED
+    -   **Why fix this issue and what will be achieved with the fix?**: To add industry-specific nuance to the risk engine as required by the V2 specification.
+    -   **Should Test frontend/backend/both after fix?**: Both
+
+**In progress Task List**:
+-   **Task 1**: (P1) UI/UX Polish for V2.
+
+**Task Detail**:
+-   **Task 1**:
+    -   **Where to resume**: After Issue 1 is resolved, resume work on .
+    -   **What will be achieved with this?**: The user wants to improve the visual hierarchy (making the score the focus), clarify wording on risk indicators, and improve the user experience of the simulation tool.
+    -   **Status**: BLOCKED
+    -   **Should Test frontend/backend/both after fix?**: Frontend
+    -   **Blocked on something**: Issue 1: Implement preview mode for .
+
+**Upcoming and Future Tasks**
+-   **Upcoming Tasks**:
+    -   (P1) **V2 User Accounts**: Fully implement the magic link login flow and a user dashboard to view past assessments. This involves  and .
+    -   (P2) **V2 Admin Dashboard**: Enhance the admin page () with filters for industry and statistics on free-to-paid user conversion.
+-   **Future Tasks**:
+    -   (P2) **V2 Pricing Update**: Implement the logic to handle the new V2 report price (£29.99–£39.99).
+
+**Completed work in this session**
+-   **V1 Application Built**: A functional V1 of the app with a form, scoring engine, paywall, PDF reports, and an admin dashboard was created.
+-   **Backend Stability**: Fixed a critical  hashing error by migrating to  (), making the backend stable.
+-   **V2 Backend Foundation**:  was updated to support V2 features like industry-specific logic, expanded inputs, and simulation APIs.
+-   **Logic Corrections**: Fixed bugs related to loss declaration, data inconsistency, and ensured risk scores are persisted correctly.
+-   **Simulation Logic Verified**: The backend simulation API () was tested via  and confirmed to be working correctly.
+
+**Earlier issues found/mentioned but not fixed**
+-   None. The current pending issues cover all known problems.
+
+**Known issue recurrence from previous fork**
+-   None.
+
+**Code Architecture**
+
+
+**Key Technical Concepts**
+-   **Backend**: FastAPI, MongoDB (Motor), Pydantic, Passlib (for password hashing), WeasyPrint (for PDF generation).
+-   **Frontend**: React, React Router, Axios, Tailwind CSS, Shadcn UI.
+-   **Integrations**: Stripe (Payments), OpenAI (AI for PDF content), Brevo (Email).
+-   **Deployment**: The application runs in a containerized environment managed by .
+
+**key DB schema**
+-   **assessments**: 
+-   **users**:  (For V2 magic link auth)
+-   **admins**: 
+
+**changes in tech stack**
+-   **Password Hashing**: Moved from a faulty  implementation to  with the  scheme for robust password hashing.
+-   **Email Provider**: Switched from an initial plan of using  to implementing .
+
+**All files of reference**
+-   : Contains the entire backend logic, including all API endpoints, database models, and the risk-scoring engine.
+-   : The file for the results display, simulation, and paywall. **This is the location of the current blocking issue.**
+-   : The main data entry form for user tax figures.
+-   : Contains the frontend routing configuration.
+-   : The Product Requirements Document outlining V1 and V2 features.
+
+**Areas that need refactoring**
+-    has grown into a large monolith. It should be broken down into separate files for API routes (routers), business logic (services), and database models to improve maintainability.
+-    is complex and handles state for assessment data, payment, and simulation. It should be refactored into smaller, more manageable components.
+
+**key api endpoints**
+-   : Creates a new risk assessment.
+-   : Retrieves the details of an assessment.
+-   : Runs the risk simulation with modified inputs.
+-   : Initiates a Stripe payment session.
+-   : Sends a login link to a user's email (V2 feature).
+-   : Verifies a magic link token for login (V2 feature).
+-   : Logs in an administrator.
+
+**Critical Info for New Agent**
+-   **Your immediate priority is to fix the preview mode in **. The user has provided very specific instructions on how to do this. Do not deviate. This is blocking all other frontend work.
+-   **The backend logic and risk-scoring rules are considered final and must not be changed.** All current and future work should be focused on the frontend UI/UX and wiring up the existing backend APIs.
+-   After the preview mode is fixed, the next task is to perform the UI/UX polish on the  as requested by the user, before moving on to other V2 features.
+
+**documents and test reports created in this job**
+-   
+-   
+
+**Last 10 User Messages and any pending HUMAN messages**
+1.  **User**: Fix the preview mode so the Results page is visible for UI polish.
+2.  **User**: Add the PHV/mileage tooltip rule, but only after fixing the preview mode.
+3.  **User**: You are still just viewing the file. Implement the preview mode fix now.
+4.  **User**: (Provides exact code) Add  and modify the payment gate to .
+5.  **User**: You are only viewing , not fixing it. Stop browsing and implement the fix.
+6.  **User**: (Repeats instructions) Add the  constant and modify the redirect logic. Show the diff after implementing.
+7.  **User**: Confirming simulation engine works. Proceed to UI/UX polish only.
+8.  **User**: Status report on V2 simulation verification. Ready for UI/UX polish.
+9.  **User**: Saving session context. All backend logic is final. Only UI/UX polish is permitted.
+10. **User**: Saving session context. Ready for UI/UX polish instructions.
+
+**Project Health Check:**
+-   **Broken**: The frontend development flow for the  is blocked because the preview mode is not implemented, making the page inaccessible without payment.
+-   **Mocked**: None.
+
+**3rd Party Integrations**
+-   **OpenAI GPT-5.2** (Text Generation) — uses Emergent LLM Key.
+-   **Stripe** (Payments) — requires User API Key.
+-   **Brevo** (Email) — requires User API Key.
+
+**Testing status**
+-   **Testing agent used after significant changes**: YES (after V1 bug fixes).
+-   **Troubleshoot agent used after agent stuck in loop**: NO.
+-   **Test files created**: None.
+-   **Known regressions**: None.
+
+**Credentials to test flow:**
+-   **Admin**: Credentials are not explicitly stated. Inspect  for the default admin creation logic to find or set credentials for testing the  dashboard.
+-   **User**: V2 user accounts use a magic link system, so no static credentials are needed.
+
+**What agent forgot to execute**
+-   The agent has repeatedly failed to execute the user's direct and explicit instructions to implement the preview mode feature in . It has been stuck in a loop of reading the file rather than applying the required code changes.</analysis>
