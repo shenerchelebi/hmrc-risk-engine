@@ -463,7 +463,18 @@ def calculate_risk_score_v2(data: dict) -> tuple:
         })
     
     # ---- INDICATOR 3: Motor Costs ----
-    if motor_ratio > motor_threshold:
+    # PHV/Taxi special case: If PHV driver has motor costs but zero mileage, 
+    # this is expected (actual costs method, not mileage allowance)
+    phv_motor_exception = (industry == "phv_taxi" and mileage == 0 and motor_costs > 0)
+    
+    if phv_motor_exception and motor_ratio > motor_threshold:
+        # Add contextual note instead of risk indicator for PHV with actual costs method
+        contextual_notes.append(
+            f"PHV/Taxi Note: Your motor costs ({motor_ratio:.1f}% of turnover) are tracked using the actual costs method. "
+            "This is normal for PHV drivers who claim actual vehicle expenses rather than mileage allowance. "
+            "Ensure you maintain detailed records of all fuel, insurance, maintenance, and vehicle-related expenses."
+        )
+    elif motor_ratio > motor_threshold:
         points = 12
         total_score += points
         risk_indicators.append({
