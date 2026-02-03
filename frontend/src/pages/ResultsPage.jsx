@@ -8,10 +8,18 @@ import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { Shield, ArrowLeft, FileText, Lock, CheckCircle, AlertTriangle, Loader2, Building2, Info, SlidersHorizontal, RotateCcw, TrendingUp, TrendingDown, Minus, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Shield, ArrowLeft, FileText, Lock, CheckCircle, AlertTriangle, Loader2, Building2, Info, SlidersHorizontal, RotateCcw, TrendingUp, TrendingDown, Minus, Eye, AlertCircle, Lightbulb } from "lucide-react";
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
 const API = `${BACKEND_URL}/api`;
+
+// Industry benchmark ranges (indicative only)
+const INDUSTRY_BENCHMARKS = {
+  expense_ratio: { low: [0, 40], typical: [40, 65], elevated: [65, 100] },
+  motor_ratio: { low: [0, 15], typical: [15, 35], elevated: [35, 100] },
+  profit_margin: { low: [0, 10], typical: [10, 30], elevated: [30, 100] }
+};
 
 const ResultsPage = () => {
   const { id } = useParams();
@@ -19,9 +27,6 @@ const ResultsPage = () => {
   const [searchParams] = useSearchParams();
   
   // Preview mode - STRICT CONTROLS
-  // 1. Only enabled via URL param (no persistence)
-  // 2. Blocked in production unless REACT_APP_ALLOW_PREVIEW=true
-  // 3. Frontend-only - backend still enforces payment for PDF
   const previewParam = searchParams.get("preview") === "1";
   const isNonProd = process.env.NODE_ENV !== "production";
   const allowlistEnabled = process.env.REACT_APP_ALLOW_PREVIEW === "true";
@@ -83,12 +88,10 @@ const ResultsPage = () => {
   };
 
   const handlePurchase = async () => {
-    // SECURITY: Block ALL Stripe API calls in preview mode
     if (isPreview) {
       toast.error("Payment disabled in preview mode");
       return;
     }
-    
     setCheckoutLoading(true);
     try {
       const response = await axios.post(`${API}/checkout/create`, {
@@ -104,7 +107,6 @@ const ResultsPage = () => {
   };
 
   const handleDownload = () => {
-    // SECURITY: Block download attempts in preview mode (backend also enforces this)
     if (isPreview) {
       toast.error("PDF download disabled in preview mode");
       return;
@@ -115,47 +117,32 @@ const ResultsPage = () => {
   const getRiskStyles = (band) => {
     switch (band) {
       case 'LOW': 
-        return { 
-          bg: 'bg-emerald-900/30', 
-          text: 'text-emerald-400', 
-          border: 'border-emerald-600/40',
-          accent: 'emerald',
-          label: 'Low Risk Signal'
-        };
+        return { bg: 'bg-emerald-900/30', text: 'text-emerald-400', border: 'border-emerald-600/40', accent: 'emerald', label: 'Low Risk Signal' };
       case 'MODERATE': 
-        return { 
-          bg: 'bg-amber-900/30', 
-          text: 'text-amber-400', 
-          border: 'border-amber-600/40',
-          accent: 'amber',
-          label: 'Moderate Risk Signal'
-        };
+        return { bg: 'bg-amber-900/30', text: 'text-amber-400', border: 'border-amber-600/40', accent: 'amber', label: 'Moderate Risk Signal' };
       case 'HIGH': 
-        return { 
-          bg: 'bg-rose-900/30', 
-          text: 'text-rose-400', 
-          border: 'border-rose-600/40',
-          accent: 'rose',
-          label: 'Elevated Risk Signal'
-        };
+        return { bg: 'bg-rose-900/30', text: 'text-rose-400', border: 'border-rose-600/40', accent: 'rose', label: 'Elevated Risk Signal' };
       default: 
-        return { 
-          bg: 'bg-zinc-800/50', 
-          text: 'text-zinc-400', 
-          border: 'border-zinc-700',
-          accent: 'zinc',
-          label: 'Risk Signal'
-        };
+        return { bg: 'bg-zinc-800/50', text: 'text-zinc-400', border: 'border-zinc-700', accent: 'zinc', label: 'Risk Signal' };
     }
   };
 
-  const getWeightLabel = (weight) => {
+  const getWeightStyle = (weight) => {
     switch (weight) {
-      case 'high': return { text: 'Higher Weight', color: 'text-rose-400 bg-rose-950/50 border-rose-800/30' };
-      case 'medium': return { text: 'Medium Weight', color: 'text-amber-400 bg-amber-950/50 border-amber-800/30' };
-      case 'low': return { text: 'Lower Weight', color: 'text-emerald-400 bg-emerald-950/50 border-emerald-800/30' };
-      default: return { text: 'Standard', color: 'text-zinc-400 bg-zinc-800/50 border-zinc-700' };
+      case 'high': return { text: 'High', bg: 'bg-rose-500/20', textColor: 'text-rose-400', border: 'border-rose-500/30' };
+      case 'medium': return { text: 'Medium', bg: 'bg-amber-500/20', textColor: 'text-amber-400', border: 'border-amber-500/30' };
+      case 'low': return { text: 'Low', bg: 'bg-emerald-500/20', textColor: 'text-emerald-400', border: 'border-emerald-500/30' };
+      default: return { text: 'Standard', bg: 'bg-zinc-500/20', textColor: 'text-zinc-400', border: 'border-zinc-500/30' };
     }
+  };
+
+  // Get benchmark band for a value
+  const getBenchmarkBand = (value, metric) => {
+    const ranges = INDUSTRY_BENCHMARKS[metric];
+    if (!ranges) return 'typical';
+    if (value >= ranges.low[0] && value < ranges.low[1]) return 'low';
+    if (value >= ranges.typical[0] && value < ranges.typical[1]) return 'typical';
+    return 'elevated';
   };
 
   if (loading) {
@@ -182,10 +169,16 @@ const ResultsPage = () => {
   const displayStyles = getRiskStyles(displayBand);
   const triggeredIndicators = (assessment.risk_indicators || []).filter(i => i.triggered);
   const simTriggered = simResult ? simResult.triggered_indicators : triggeredIndicators;
+  
+  // Get top 3 drivers sorted by points (descending)
+  const topDrivers = [...triggeredIndicators].sort((a, b) => b.points - a.points).slice(0, 3);
+  
+  // Contextual notes (informational, not risk signals)
+  const contextualNotes = assessment.contextual_notes || [];
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] relative">
-      {/* Preview Mode Watermark Overlay */}
+      {/* Preview Mode Watermark */}
       {isPreview && (
         <div className="fixed inset-0 pointer-events-none z-50 flex items-center justify-center overflow-hidden">
           <div className="absolute transform rotate-[-30deg] text-amber-500/10 text-[120px] font-bold whitespace-nowrap select-none">
@@ -194,7 +187,7 @@ const ResultsPage = () => {
         </div>
       )}
       
-      {/* Preview Mode Banner - Sticky */}
+      {/* Preview Mode Banner */}
       {isPreview && (
         <div className="sticky top-0 z-40 bg-amber-900/90 border-b border-amber-600 px-6 py-3">
           <div className="max-w-5xl mx-auto flex items-center justify-center gap-3">
@@ -217,80 +210,196 @@ const ResultsPage = () => {
         </div>
       </header>
 
-      <main className="px-6 md:px-12 py-10">
+      <main className="px-6 md:px-12 py-8">
         <div className="max-w-5xl mx-auto">
-          <div className="grid lg:grid-cols-3 gap-6">
+          
+          {/* ========== HERO SECTION: Above the fold ========== */}
+          <div className="grid lg:grid-cols-3 gap-6 mb-8">
             
-            {/* Primary Column - Risk Score */}
-            <div className="lg:col-span-2 space-y-6">
-              
-              {/* Risk Score Card - Primary Visual Focus */}
-              <Card className={`border ${displayStyles.border} ${displayStyles.bg} overflow-hidden`}>
-                <CardContent className="p-8 md:p-10">
-                  <div className="flex flex-col items-center">
+            {/* Left: Score Hero + Top Drivers */}
+            <div className="lg:col-span-2">
+              <Card className={`border-2 ${displayStyles.border} ${displayStyles.bg} overflow-hidden`}>
+                <CardContent className="p-6 md:p-8">
+                  <div className="flex flex-col md:flex-row md:items-center gap-6">
                     
-                    {/* Industry Context */}
-                    <div className="flex items-center gap-2 mb-6 text-zinc-500 text-sm">
-                      <Building2 className="h-4 w-4" />
-                      <span>{assessment.industry_name || 'General'} sector analysis</span>
+                    {/* Score Circle - HERO */}
+                    <div className="flex-shrink-0">
+                      <div className="relative">
+                        <div className={`w-36 h-36 md:w-44 md:h-44 rounded-full ${displayStyles.bg} ${displayStyles.border} border-2 flex items-center justify-center`}>
+                          <div className="text-center">
+                            <div className={`text-5xl md:text-6xl font-bold tracking-tight ${displayStyles.text}`} data-testid="risk-score">
+                              {displayScore}
+                            </div>
+                            <div className="text-zinc-500 text-xs mt-1">out of 100</div>
+                          </div>
+                        </div>
+                        {simResult && (
+                          <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${
+                            simResult.score_change > 0 ? 'bg-rose-950/80 text-rose-400 border border-rose-800/50' 
+                            : simResult.score_change < 0 ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/50'
+                            : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
+                          }`}>
+                            {simResult.score_change > 0 ? <TrendingUp className="h-3 w-3" /> : simResult.score_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
+                            {simResult.score_change > 0 ? '+' : ''}{simResult.score_change}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     
-                    {/* Score Display - Primary Focus */}
-                    <div className="relative mb-6">
-                      <div className={`w-44 h-44 rounded-full ${displayStyles.bg} ${displayStyles.border} border-2 flex items-center justify-center`}>
-                        <div className="text-center">
-                          <div className={`text-6xl font-bold tracking-tight ${displayStyles.text}`} data-testid="risk-score">
-                            {displayScore}
-                          </div>
-                          <div className="text-zinc-500 text-sm mt-1">out of 100</div>
-                        </div>
+                    {/* Score Info + Top Drivers */}
+                    <div className="flex-1 min-w-0">
+                      {/* Industry + Band */}
+                      <div className="flex items-center gap-2 text-zinc-500 text-sm mb-2">
+                        <Building2 className="h-4 w-4" />
+                        <span>{assessment.industry_name || 'General'}</span>
                       </div>
-                      {simResult && (
-                        <div className={`absolute -bottom-2 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${
-                          simResult.score_change > 0 
-                            ? 'bg-rose-950/80 text-rose-400 border border-rose-800/50' 
-                            : simResult.score_change < 0 
-                              ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-800/50'
-                              : 'bg-zinc-800 text-zinc-400 border border-zinc-700'
-                        }`}>
-                          {simResult.score_change > 0 ? <TrendingUp className="h-3 w-3" /> : simResult.score_change < 0 ? <TrendingDown className="h-3 w-3" /> : <Minus className="h-3 w-3" />}
-                          {simResult.score_change > 0 ? '+' : ''}{simResult.score_change}
+                      
+                      <Badge className={`${displayStyles.bg} ${displayStyles.text} ${displayStyles.border} border text-base px-4 py-1 font-medium mb-3`} data-testid="risk-band">
+                        {displayStyles.label}
+                      </Badge>
+                      
+                      {/* 1-line meaning */}
+                      <p className="text-zinc-400 text-sm mb-4">
+                        {displayBand === 'LOW' && "Your figures fall within typical ranges for this sector."}
+                        {displayBand === 'MODERATE' && "Some figures may warrant attention. Detailed records advisable."}
+                        {displayBand === 'HIGH' && "Several indicators may attract review. Professional advice recommended."}
+                      </p>
+                      
+                      {/* Top Drivers (up to 3) */}
+                      {topDrivers.length > 0 && (
+                        <div className="space-y-2">
+                          <p className="text-zinc-600 text-xs font-medium uppercase tracking-wide">Top contributing factors:</p>
+                          {topDrivers.map((driver, idx) => {
+                            const ws = getWeightStyle(driver.weight);
+                            return (
+                              <div key={idx} className="flex items-center gap-2 text-sm">
+                                <AlertCircle className={`h-3.5 w-3.5 flex-shrink-0 ${ws.textColor}`} />
+                                <span className="text-zinc-300 truncate">{driver.name}</span>
+                                <Badge className={`${ws.bg} ${ws.textColor} ${ws.border} border text-[10px] px-1.5 py-0`}>
+                                  {ws.text}
+                                </Badge>
+                                <span className="text-zinc-600 text-xs">+{driver.points}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {topDrivers.length === 0 && (
+                        <div className="flex items-center gap-2 text-sm text-emerald-400/80">
+                          <CheckCircle className="h-4 w-4" />
+                          <span>No predefined risk signals triggered</span>
                         </div>
                       )}
                     </div>
-
-                    {/* Risk Band Label */}
-                    <Badge className={`${displayStyles.bg} ${displayStyles.text} ${displayStyles.border} border text-base px-5 py-1.5 font-medium`} data-testid="risk-band">
-                      {displayStyles.label}
-                    </Badge>
-
-                    {/* Contextual Description */}
-                    <p className="text-zinc-500 text-sm text-center mt-6 max-w-sm leading-relaxed">
-                      {displayBand === 'LOW' && "Your figures fall within typical ranges. This profile may attract less routine scrutiny."}
-                      {displayBand === 'MODERATE' && "Some figures may warrant attention. Keeping detailed records is advisable."}
-                      {displayBand === 'HIGH' && "Several indicators may attract review. Professional record-keeping is recommended."}
-                    </p>
-
-                    {/* Simulation Comparison */}
-                    {simResult && (
-                      <div className="mt-6 pt-6 border-t border-zinc-800/50 w-full">
-                        <div className="flex justify-center gap-8 text-sm">
-                          <div className="text-center">
-                            <div className="text-zinc-500 mb-1">Original</div>
-                            <div className={`font-semibold ${originalStyles.text}`}>{assessment.risk_score} - {assessment.risk_band}</div>
-                          </div>
-                          <div className="text-center">
-                            <div className="text-zinc-500 mb-1">Simulated</div>
-                            <div className={`font-semibold ${displayStyles.text}`}>{simResult.simulated_score} - {simResult.simulated_band}</div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </CardContent>
               </Card>
-
-              {/* Risk Transparency Panel */}
+            </div>
+            
+            {/* Right: Primary CTA (Paywall) */}
+            <div>
+              {assessment.payment_status === 'paid' ? (
+                <Card className="border border-emerald-800/40 bg-emerald-950/20 h-full">
+                  <CardContent className="p-5 flex flex-col h-full">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-emerald-900/50 flex items-center justify-center">
+                        <CheckCircle className="h-5 w-5 text-emerald-400" />
+                      </div>
+                      <div>
+                        <span className="font-medium text-white block">Report Ready</span>
+                        <span className="text-emerald-500/70 text-xs">Full analysis available</span>
+                      </div>
+                    </div>
+                    <div className="flex-1" />
+                    <Button onClick={handleDownload} className="w-full bg-emerald-600 hover:bg-emerald-500" data-testid="download-report-btn">
+                      <FileText className="mr-2 h-4 w-4" />Download PDF
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <Card className="border border-teal-800/40 bg-teal-950/20 h-full">
+                  <CardContent className="p-5 flex flex-col h-full">
+                    <h3 className="font-medium text-white mb-3">Full Report</h3>
+                    
+                    {/* 3-bullet value stack */}
+                    <ul className="space-y-2 mb-4 text-xs">
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="h-3.5 w-3.5 text-teal-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-zinc-400">Industry-specific comparison & benchmarks</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="h-3.5 w-3.5 text-teal-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-zinc-400">Documentation checklist for each indicator</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <CheckCircle className="h-3.5 w-3.5 text-teal-500 mt-0.5 flex-shrink-0" />
+                        <span className="text-zinc-400">AI-generated guidance tailored to your figures</span>
+                      </li>
+                    </ul>
+                    
+                    <div className="flex-1" />
+                    <div className="text-2xl font-bold text-teal-400 mb-3">£{assessment.payment_amount || 29.99}</div>
+                    <Button 
+                      onClick={handlePurchase} 
+                      disabled={checkoutLoading || isPreview} 
+                      className="w-full bg-teal-600 hover:bg-teal-500 disabled:opacity-50" 
+                      data-testid="purchase-report-btn"
+                    >
+                      {checkoutLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Lock className="mr-2 h-4 w-4" />}
+                      {isPreview ? 'Payment Disabled (Preview)' : 'Get Full Report'}
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          </div>
+          
+          {/* ========== BELOW THE FOLD ========== */}
+          <div className="grid lg:grid-cols-3 gap-6">
+            
+            {/* Left Column: Details */}
+            <div className="lg:col-span-2 space-y-6">
+              
+              {/* Indicative Sector Benchmarks */}
+              <Card className="border border-zinc-800/60 bg-zinc-900/40">
+                <CardHeader className="pb-3">
+                  <CardTitle className="font-serif text-base text-white flex items-center gap-2">
+                    <TrendingUp className="h-4 w-4 text-teal-500" />
+                    Indicative Sector Ranges
+                  </CardTitle>
+                  <p className="text-zinc-600 text-xs mt-1">Indicative ranges, not HMRC thresholds. For reference only.</p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Expense Ratio Benchmark */}
+                  <BenchmarkBar 
+                    label="Expense Ratio"
+                    value={assessment.expense_ratio}
+                    unit="%"
+                    ranges={INDUSTRY_BENCHMARKS.expense_ratio}
+                  />
+                  
+                  {/* Profit Margin Benchmark */}
+                  <BenchmarkBar 
+                    label="Profit Margin"
+                    value={assessment.profit_ratio}
+                    unit="%"
+                    ranges={INDUSTRY_BENCHMARKS.profit_margin}
+                  />
+                  
+                  {/* Motor Ratio Benchmark (only if motor costs exist) */}
+                  {assessment.motor_costs > 0 && (
+                    <BenchmarkBar 
+                      label="Motor Costs"
+                      value={assessment.motor_ratio}
+                      unit="%"
+                      ranges={INDUSTRY_BENCHMARKS.motor_ratio}
+                    />
+                  )}
+                </CardContent>
+              </Card>
+              
+              {/* Risk Signals Panel */}
               <Card className="border border-zinc-800/60 bg-zinc-900/40">
                 <CardHeader className="pb-4">
                   <CardTitle className="font-serif text-lg text-white flex items-center gap-2">
@@ -298,97 +407,103 @@ const ResultsPage = () => {
                     What Contributed to This Score
                   </CardTitle>
                   <p className="text-zinc-500 text-sm mt-1">
-                    These factors were identified based on the figures provided. Higher-weight items may attract more attention.
+                    Factors identified based on your figures. Higher-weight items may attract more attention.
                   </p>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {(simResult ? simTriggered : triggeredIndicators).length === 0 ? (
+                  {(simResult ? simTriggered : triggeredIndicators).length === 0 && contextualNotes.length === 0 ? (
                     <div className="text-center py-8 px-4">
                       <CheckCircle className="h-10 w-10 text-emerald-500/70 mx-auto mb-4" />
-                      <p className="text-zinc-400 text-sm">No predefined risk signals were triggered based on the figures provided.</p>
+                      <p className="text-zinc-400 text-sm">No predefined risk signals were triggered.</p>
                       <p className="text-zinc-600 text-xs mt-2">This does not guarantee exemption from review.</p>
                     </div>
                   ) : (
-                    (simResult ? simTriggered : triggeredIndicators).map((indicator, idx) => {
-                      const weightStyle = getWeightLabel(indicator.weight);
-                      return (
-                        <div key={idx} className="p-4 rounded-lg bg-zinc-800/30 border border-zinc-800/50">
-                          <div className="flex items-start justify-between gap-4 mb-3">
-                            <span className="font-medium text-white text-sm">{indicator.name}</span>
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <Badge className={`${weightStyle.color} border text-xs px-2 py-0.5`}>
-                                {weightStyle.text}
-                              </Badge>
-                              <span className="text-zinc-500 text-xs">+{indicator.points} pts</span>
+                    <>
+                      {/* Risk Signal Cards */}
+                      {(simResult ? simTriggered : triggeredIndicators).map((indicator, idx) => {
+                        const ws = getWeightStyle(indicator.weight);
+                        return (
+                          <div key={idx} className="p-4 rounded-lg bg-zinc-800/40 border border-zinc-700/50">
+                            <div className="flex items-start justify-between gap-3 mb-3">
+                              <div className="flex items-center gap-2">
+                                <Badge className="bg-rose-500/10 text-rose-400 border-rose-500/20 border text-[10px] px-1.5 py-0">
+                                  Risk Signal
+                                </Badge>
+                                <span className="font-medium text-white text-sm">{indicator.name}</span>
+                              </div>
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <Badge className={`${ws.bg} ${ws.textColor} ${ws.border} border text-xs px-2 py-0.5 font-medium`}>
+                                  {ws.text} Weight
+                                </Badge>
+                                <span className="text-zinc-400 text-sm font-semibold">+{indicator.points}</span>
+                              </div>
+                            </div>
+                            <p className="text-zinc-400 text-sm leading-relaxed mb-3">{indicator.explanation}</p>
+                            <div className="grid md:grid-cols-2 gap-3 text-xs">
+                              <div className="p-2 rounded bg-zinc-900/50">
+                                <span className="text-teal-500 font-medium block mb-1">Why it matters:</span>
+                                <span className="text-zinc-500">{indicator.hmrc_context}</span>
+                              </div>
+                              <div className="p-2 rounded bg-zinc-900/50">
+                                <span className="text-teal-500 font-medium block mb-1">Record-keeping:</span>
+                                <span className="text-zinc-500">{indicator.documentation_tips}</span>
+                              </div>
                             </div>
                           </div>
-                          <p className="text-zinc-400 text-sm leading-relaxed mb-3">{indicator.explanation}</p>
-                          <div className="space-y-2 text-xs">
-                            <div className="flex gap-2">
-                              <span className="text-teal-500 flex-shrink-0">Why it matters:</span>
-                              <span className="text-zinc-500">{indicator.hmrc_context}</span>
+                        );
+                      })}
+                      
+                      {/* Contextual Notes (informational, not risk) */}
+                      {contextualNotes.length > 0 && (
+                        <>
+                          {contextualNotes.map((note, idx) => (
+                            <div key={`note-${idx}`} className="p-4 rounded-lg bg-blue-950/20 border border-blue-800/30">
+                              <div className="flex items-start gap-3">
+                                <div className="flex-shrink-0 mt-0.5">
+                                  <Badge className="bg-blue-500/10 text-blue-400 border-blue-500/20 border text-[10px] px-1.5 py-0">
+                                    Context Note
+                                  </Badge>
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Lightbulb className="h-4 w-4 text-blue-400" />
+                                    <span className="text-blue-300 text-sm font-medium">Additional Context</span>
+                                  </div>
+                                  <p className="text-zinc-400 text-sm leading-relaxed">{note}</p>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex gap-2">
-                              <span className="text-teal-500 flex-shrink-0">Record-keeping:</span>
-                              <span className="text-zinc-500">{indicator.documentation_tips}</span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-
-                  {/* Contextual Notes */}
-                  {assessment.contextual_notes && assessment.contextual_notes.length > 0 && (
-                    <div className="mt-4 p-3 bg-zinc-800/20 rounded-lg border border-zinc-800/30">
-                      <p className="text-zinc-600 text-xs font-medium mb-2">Additional Context:</p>
-                      {assessment.contextual_notes.map((note, idx) => (
-                        <p key={idx} className="text-zinc-500 text-xs leading-relaxed">{note}</p>
-                      ))}
-                    </div>
+                          ))}
+                        </>
+                      )}
+                    </>
                   )}
                 </CardContent>
               </Card>
             </div>
-
-            {/* Sidebar */}
+            
+            {/* Right Column: Summary + Simulation */}
             <div className="space-y-6">
               
-              {/* Summary Card */}
+              {/* Assessment Summary */}
               <Card className="border border-zinc-800/60 bg-zinc-900/40">
                 <CardHeader className="pb-3">
                   <CardTitle className="font-serif text-base text-white">Assessment Summary</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-3 text-sm">
-                  <div className="flex justify-between py-1.5 border-b border-zinc-800/40">
-                    <span className="text-zinc-500">Tax Year</span>
-                    <span className="text-zinc-300">{assessment.tax_year}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-zinc-800/40">
-                    <span className="text-zinc-500">Turnover</span>
-                    <span className="text-zinc-300">£{assessment.turnover?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-zinc-800/40">
-                    <span className="text-zinc-500">Expenses</span>
-                    <span className="text-zinc-300">£{assessment.total_expenses?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-zinc-800/40">
-                    <span className="text-zinc-500">Profit/Loss</span>
-                    <span className={assessment.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                      {assessment.profit >= 0 ? '' : '-'}£{Math.abs(assessment.profit)?.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between py-1.5 border-b border-zinc-800/40">
-                    <span className="text-zinc-500">Mileage</span>
-                    <span className="text-zinc-300">{(assessment.mileage_miles || assessment.mileage_claimed || 0).toLocaleString()} miles</span>
-                  </div>
-                  <div className="flex justify-between py-1.5">
-                    <span className="text-zinc-500">Signals Triggered</span>
-                    <span className="text-zinc-300">{triggeredIndicators.length}</span>
-                  </div>
+                <CardContent className="space-y-2 text-sm">
+                  <SummaryRow label="Tax Year" value={assessment.tax_year} />
+                  <SummaryRow label="Turnover" value={`£${assessment.turnover?.toLocaleString()}`} />
+                  <SummaryRow label="Expenses" value={`£${assessment.total_expenses?.toLocaleString()}`} />
+                  <SummaryRow 
+                    label="Profit/Loss" 
+                    value={`${assessment.profit >= 0 ? '' : '-'}£${Math.abs(assessment.profit)?.toLocaleString()}`}
+                    valueClass={assessment.profit >= 0 ? 'text-emerald-400' : 'text-rose-400'}
+                  />
+                  <SummaryRow label="Mileage" value={`${(assessment.mileage_miles || assessment.mileage_claimed || 0).toLocaleString()} miles`} />
+                  <SummaryRow label="Signals Triggered" value={triggeredIndicators.length} border={false} />
                 </CardContent>
               </Card>
-
+              
               {/* Simulation Tool */}
               <Card className="border border-zinc-800/60 bg-zinc-900/40">
                 <CardHeader className="pb-3">
@@ -405,57 +520,50 @@ const ResultsPage = () => {
                 </CardHeader>
                 {showSimulation && (
                   <CardContent className="space-y-5">
-                    <p className="text-zinc-500 text-xs">Adjust values to see potential impact. No changes are saved.</p>
+                    {/* No changes saved notice */}
+                    <div className="flex items-center gap-2 p-2 rounded bg-amber-950/20 border border-amber-800/30">
+                      <Info className="h-3.5 w-3.5 text-amber-500 flex-shrink-0" />
+                      <p className="text-amber-400/80 text-xs">No changes are saved. This is for exploration only.</p>
+                    </div>
                     
-                    <div className="space-y-4">
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <Label className="text-xs text-zinc-400">Total Expenses</Label>
-                          <span className="text-xs text-zinc-500">£{simData.total_expenses?.toLocaleString()}</span>
-                        </div>
-                        <Slider
-                          value={[simData.total_expenses]}
-                          onValueChange={([v]) => setSimData(prev => ({ ...prev, total_expenses: v }))}
-                          min={0}
-                          max={Math.max(assessment.turnover, assessment.total_expenses * 1.5)}
-                          step={1000}
-                          className="cursor-pointer"
-                        />
-                        <p className="text-zinc-600 text-xs mt-1">Reducing expenses may lower risk signals.</p>
-                      </div>
+                    <div className="space-y-5">
+                      {/* Total Expenses */}
+                      <SimulationField
+                        label="Total Expenses"
+                        value={simData.total_expenses}
+                        onChange={(v) => setSimData(prev => ({ ...prev, total_expenses: v }))}
+                        min={0}
+                        max={Math.max(assessment.turnover, assessment.total_expenses * 1.5)}
+                        step={1000}
+                        unit="£"
+                        hint="Reducing expenses may lower risk signals."
+                      />
                       
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <Label className="text-xs text-zinc-400">Motor Costs</Label>
-                          <span className="text-xs text-zinc-500">£{simData.motor_costs?.toLocaleString()}</span>
-                        </div>
-                        <Slider
-                          value={[simData.motor_costs]}
-                          onValueChange={([v]) => setSimData(prev => ({ ...prev, motor_costs: v }))}
-                          min={0}
-                          max={Math.max(assessment.turnover * 0.5, assessment.motor_costs * 2)}
-                          step={500}
-                          className="cursor-pointer"
-                        />
-                        <p className="text-zinc-600 text-xs mt-1">High motor costs relative to turnover may attract review.</p>
-                      </div>
+                      {/* Motor Costs */}
+                      <SimulationField
+                        label="Motor Costs"
+                        value={simData.motor_costs}
+                        onChange={(v) => setSimData(prev => ({ ...prev, motor_costs: v }))}
+                        min={0}
+                        max={Math.max(assessment.turnover * 0.5, assessment.motor_costs * 2)}
+                        step={500}
+                        unit="£"
+                        hint="High motor costs relative to turnover may attract review."
+                      />
                       
-                      <div>
-                        <div className="flex justify-between mb-2">
-                          <Label className="text-xs text-zinc-400">Business Mileage</Label>
-                          <span className="text-xs text-zinc-500">{simData.mileage_claimed?.toLocaleString()} miles</span>
-                        </div>
-                        <Slider
-                          value={[simData.mileage_claimed]}
-                          onValueChange={([v]) => setSimData(prev => ({ ...prev, mileage_claimed: v }))}
-                          min={0}
-                          max={50000}
-                          step={500}
-                          className="cursor-pointer"
-                        />
-                        <p className="text-zinc-600 text-xs mt-1">Large mileage claims benefit from detailed records.</p>
-                      </div>
+                      {/* Business Mileage */}
+                      <SimulationField
+                        label="Business Mileage"
+                        value={simData.mileage_claimed}
+                        onChange={(v) => setSimData(prev => ({ ...prev, mileage_claimed: v }))}
+                        min={0}
+                        max={50000}
+                        step={500}
+                        unit="miles"
+                        hint="Large mileage claims benefit from detailed records."
+                      />
                       
+                      {/* Loss Toggle */}
                       <div className="flex items-center justify-between py-2">
                         <div>
                           <Label className="text-xs text-zinc-400">Declare Loss</Label>
@@ -468,68 +576,36 @@ const ResultsPage = () => {
                       </div>
                     </div>
 
+                    {/* Run + Reset buttons */}
                     <div className="flex gap-2 pt-2">
-                      <Button 
-                        onClick={runSimulation} 
-                        disabled={simulating} 
-                        className="flex-1 bg-amber-600 hover:bg-amber-500 text-sm h-9"
-                      >
-                        {simulating ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Run Analysis'}
+                      <Button onClick={runSimulation} disabled={simulating} className="flex-1 bg-amber-600 hover:bg-amber-500 text-sm h-9">
+                        {simulating ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                        Run Analysis
                       </Button>
-                      <Button 
-                        onClick={resetSimulation} 
-                        variant="outline" 
-                        className="border-zinc-700 text-zinc-400 hover:text-white hover:bg-zinc-800 text-sm h-9 px-3"
-                      >
-                        <RotateCcw className="h-4 w-4" />
+                      <Button onClick={resetSimulation} variant="ghost" className="text-zinc-400 hover:text-white text-sm h-9 px-4">
+                        <RotateCcw className="h-4 w-4 mr-1" />
+                        Reset
                       </Button>
                     </div>
+                    
+                    {/* Simulation Result */}
+                    {simResult && (
+                      <div className="pt-3 border-t border-zinc-800/50">
+                        <div className="flex justify-between text-sm">
+                          <div className="text-center">
+                            <div className="text-zinc-500 text-xs mb-1">Original</div>
+                            <div className={`font-semibold ${originalStyles.text}`}>{assessment.risk_score} ({assessment.risk_band})</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-zinc-500 text-xs mb-1">Simulated</div>
+                            <div className={`font-semibold ${displayStyles.text}`}>{simResult.simulated_score} ({simResult.simulated_band})</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                 )}
               </Card>
-
-              {/* Purchase/Download Card */}
-              {assessment.payment_status === 'paid' ? (
-                <Card className="border border-emerald-800/40 bg-emerald-950/20">
-                  <CardContent className="p-5">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-emerald-900/50 flex items-center justify-center">
-                        <CheckCircle className="h-5 w-5 text-emerald-400" />
-                      </div>
-                      <div>
-                        <span className="font-medium text-white block">Report Available</span>
-                        <span className="text-emerald-500/70 text-xs">Full analysis ready</span>
-                      </div>
-                    </div>
-                    <Button onClick={handleDownload} className="w-full bg-emerald-600 hover:bg-emerald-500" data-testid="download-report-btn">
-                      <FileText className="mr-2 h-4 w-4" />Download PDF Report
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <Card className="border border-teal-800/40 bg-teal-950/20">
-                  <CardContent className="p-5">
-                    <h3 className="font-medium text-white mb-2">Full Report</h3>
-                    <p className="text-zinc-500 text-xs mb-4 leading-relaxed">
-                      Detailed analysis with industry comparison, documentation guidance, and record-keeping checklist.
-                    </p>
-                    <div className="text-2xl font-bold text-teal-400 mb-4">£{assessment.payment_amount || 29.99}</div>
-                    <Button 
-                      onClick={handlePurchase} 
-                      disabled={checkoutLoading || isPreview} 
-                      className="w-full bg-teal-600 hover:bg-teal-500 disabled:opacity-50" 
-                      data-testid="purchase-report-btn"
-                    >
-                      {checkoutLoading ? (
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      ) : (
-                        <Lock className="mr-2 h-4 w-4" />
-                      )}
-                      {isPreview ? 'Payment Disabled (Preview)' : 'Get Full Report'}
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
             </div>
           </div>
 
@@ -543,6 +619,104 @@ const ResultsPage = () => {
           </div>
         </div>
       </main>
+    </div>
+  );
+};
+
+// ========== HELPER COMPONENTS ==========
+
+// Summary Row Component
+const SummaryRow = ({ label, value, valueClass = 'text-zinc-300', border = true }) => (
+  <div className={`flex justify-between py-1.5 ${border ? 'border-b border-zinc-800/40' : ''}`}>
+    <span className="text-zinc-500">{label}</span>
+    <span className={valueClass}>{value}</span>
+  </div>
+);
+
+// Simulation Field with Slider + Input
+const SimulationField = ({ label, value, onChange, min, max, step, unit, hint }) => {
+  const isMonetary = unit === '£';
+  const displayValue = isMonetary ? `£${value?.toLocaleString()}` : `${value?.toLocaleString()} ${unit}`;
+  
+  const handleInputChange = (e) => {
+    const raw = e.target.value.replace(/[^0-9]/g, '');
+    const num = parseInt(raw, 10) || 0;
+    onChange(Math.min(Math.max(num, min), max));
+  };
+  
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-2">
+        <Label className="text-xs text-zinc-400">{label} ({unit})</Label>
+        <Input
+          type="text"
+          value={displayValue}
+          onChange={handleInputChange}
+          className="w-28 h-7 text-xs text-right bg-zinc-800/50 border-zinc-700 text-zinc-300"
+        />
+      </div>
+      <Slider
+        value={[value]}
+        onValueChange={([v]) => onChange(v)}
+        min={min}
+        max={max}
+        step={step}
+        className="cursor-pointer"
+      />
+      <p className="text-zinc-600 text-xs mt-1">{hint}</p>
+    </div>
+  );
+};
+
+// Benchmark Bar Component
+const BenchmarkBar = ({ label, value, unit, ranges }) => {
+  // Determine which band the value falls into
+  let band = 'typical';
+  let position = 50; // default middle
+  
+  if (value < ranges.low[1]) {
+    band = 'low';
+    position = (value / ranges.low[1]) * 33;
+  } else if (value < ranges.typical[1]) {
+    band = 'typical';
+    position = 33 + ((value - ranges.typical[0]) / (ranges.typical[1] - ranges.typical[0])) * 34;
+  } else {
+    band = 'elevated';
+    position = 67 + Math.min(((value - ranges.elevated[0]) / 35) * 33, 33);
+  }
+  
+  position = Math.max(2, Math.min(98, position)); // clamp to 2-98%
+  
+  const bandColors = {
+    low: 'text-emerald-400',
+    typical: 'text-amber-400',
+    elevated: 'text-rose-400'
+  };
+  
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-zinc-400 text-xs">{label}</span>
+        <span className={`text-xs font-medium ${bandColors[band]}`}>{value?.toFixed(1)}{unit}</span>
+      </div>
+      <div className="relative h-2 rounded-full overflow-hidden bg-zinc-800">
+        {/* Bands */}
+        <div className="absolute inset-0 flex">
+          <div className="w-1/3 bg-emerald-900/50" />
+          <div className="w-1/3 bg-amber-900/50" />
+          <div className="w-1/3 bg-rose-900/50" />
+        </div>
+        {/* Position marker */}
+        <div 
+          className="absolute top-0 h-full w-1 bg-white rounded-full shadow-lg transition-all duration-300"
+          style={{ left: `${position}%`, transform: 'translateX(-50%)' }}
+        />
+      </div>
+      <div className="flex justify-between mt-1 text-[10px] text-zinc-600">
+        <span>Low</span>
+        <span>Typical</span>
+        <span>Elevated</span>
+      </div>
     </div>
   );
 };
