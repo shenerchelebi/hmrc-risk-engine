@@ -490,8 +490,8 @@ const ResultsPage = () => {
                     <div className="text-2xl font-bold text-teal-400 mb-4">£{assessment.payment_amount || 29.99}</div>
                     <Button 
                       onClick={handlePurchase} 
-                      disabled={checkoutLoading} 
-                      className="w-full bg-teal-600 hover:bg-teal-500" 
+                      disabled={checkoutLoading || isPreview} 
+                      className="w-full bg-teal-600 hover:bg-teal-500 disabled:opacity-50" 
                       data-testid="purchase-report-btn"
                     >
                       {checkoutLoading ? (
@@ -499,7 +499,7 @@ const ResultsPage = () => {
                       ) : (
                         <Lock className="mr-2 h-4 w-4" />
                       )}
-                      Get Full Report
+                      {isPreview ? 'Payment Disabled (Preview)' : 'Get Full Report'}
                     </Button>
                   </CardContent>
                 </Card>
