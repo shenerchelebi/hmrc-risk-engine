@@ -88,13 +88,21 @@ Build a production-ready SaaS web application called "HMRC Red-Flag Detector" - 
 - [x] Payment integration
 - [x] PDF generation
 - [x] Admin dashboard
-- [x] Preview mode for ResultsPage
-- [x] PHV/mileage tooltip rule
+- [x] Preview mode for ResultsPage (with all 5 security criteria)
+- [x] PHV/mileage tooltip rule (audit-safe wording)
+
+### P1 (Complete)
+- [x] UI/UX Polish for V2 ResultsPage:
+  - [x] Visual hierarchy: Score hero + top 3 drivers above the fold
+  - [x] Simulation tool: Input fields + sliders, "No changes saved" microcopy, Reset button
+  - [x] Risk indicators: "Risk Signal" vs "Context Note" chips, weight badges
+  - [x] Benchmark comparison: Banded sector range bars with disclaimer
+  - [x] Paywall: 3-bullet value stack
 
 ### P1 (In Progress)
-- [ ] UI/UX Polish for V2 (Results page visual hierarchy)
 - [ ] V2 User Accounts (magic link login flow + dashboard)
 - [ ] V2 Admin Dashboard (industry filters, conversion stats)
+- [ ] Compare to Industry Average (banded benchmarking with disclaimers)
 
 ### P2 (Future)
 - [ ] V2 Pricing Update (£29.99–£39.99 configurable)
