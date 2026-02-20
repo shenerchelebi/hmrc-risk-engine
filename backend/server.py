@@ -872,31 +872,28 @@ Use formal British English. No casual language. No guarantees or promises."""
 # ================================
 
 def create_pdf_report_v2(assessment: dict, ai_content: str) -> tuple:
-    """V2 PDF with full transparency panel and industry context"""
-    pdf_filename = f"hmrc_risk_report_v2_{assessment['id']}.pdf"
+    """Professional audit-ready PDF report"""
+    pdf_filename = f"hmrc_risk_report_{assessment['id']}.pdf"
     
     buffer = BytesIO()
     doc = SimpleDocTemplate(buffer, pagesize=letter, 
                            rightMargin=60, leftMargin=60, 
-                           topMargin=60, bottomMargin=60)
+                           topMargin=50, bottomMargin=50)
     
     styles = getSampleStyleSheet()
     
-    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=22, spaceAfter=20, textColor=colors.HexColor('#0f172a'))
-    heading_style = ParagraphStyle('Heading', parent=styles['Heading2'], fontSize=13, spaceBefore=15, spaceAfter=8, textColor=colors.HexColor('#0f172a'))
-    subheading_style = ParagraphStyle('SubHeading', parent=styles['Heading3'], fontSize=11, spaceBefore=10, spaceAfter=6, textColor=colors.HexColor('#374151'))
-    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, spaceAfter=8, leading=13)
-    small_style = ParagraphStyle('Small', parent=styles['Normal'], fontSize=9, spaceAfter=6, leading=11, textColor=colors.HexColor('#6b7280'))
-    indicator_style = ParagraphStyle('Indicator', parent=styles['Normal'], fontSize=10, spaceAfter=4, leading=12, leftIndent=15)
-    warning_style = ParagraphStyle('Warning', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#b45309'), backColor=colors.HexColor('#fef3c7'), borderPadding=6)
-    disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=8, textColor=colors.gray, spaceAfter=4)
+    # Professional styles
+    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=18, spaceAfter=6, textColor=colors.HexColor('#1a1a1a'), fontName='Helvetica-Bold')
+    subtitle_style = ParagraphStyle('Subtitle', parent=styles['Normal'], fontSize=11, spaceAfter=20, textColor=colors.HexColor('#4a4a4a'), fontName='Helvetica-Oblique')
+    section_style = ParagraphStyle('Section', parent=styles['Heading2'], fontSize=12, spaceBefore=18, spaceAfter=10, textColor=colors.HexColor('#1a1a1a'), fontName='Helvetica-Bold')
+    body_style = ParagraphStyle('Body', parent=styles['Normal'], fontSize=10, spaceAfter=8, leading=14, fontName='Helvetica')
+    bullet_style = ParagraphStyle('Bullet', parent=styles['Normal'], fontSize=10, spaceAfter=4, leading=13, leftIndent=15, fontName='Helvetica')
+    small_style = ParagraphStyle('Small', parent=styles['Normal'], fontSize=9, spaceAfter=6, leading=12, textColor=colors.HexColor('#5a5a5a'), fontName='Helvetica')
+    indicator_title_style = ParagraphStyle('IndicatorTitle', parent=styles['Normal'], fontSize=10, spaceAfter=4, fontName='Helvetica-Bold')
+    disclaimer_style = ParagraphStyle('Disclaimer', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#666666'), spaceAfter=4, leading=11, fontName='Helvetica')
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, textColor=colors.HexColor('#888888'), alignment=1, fontName='Helvetica')
     
     elements = []
-    
-    # Header
-    elements.append(Paragraph("HMRC Risk Assessment Report", title_style))
-    elements.append(Paragraph("Professional V2 Analysis", small_style))
-    elements.append(Spacer(1, 10))
     
     # Use persisted values
     profit = assessment['profit']
@@ -905,97 +902,197 @@ def create_pdf_report_v2(assessment: dict, ai_content: str) -> tuple:
     risk_indicators = assessment.get('risk_indicators', [])
     industry_name = assessment.get('industry_name', 'General')
     mileage_miles = assessment.get('mileage_miles', 0)
+    contextual_notes = assessment.get('contextual_notes', [])
     
-    profit_display = f"Loss: £{abs(profit):,.2f}" if profit <= 0 else f"Profit: £{profit:,.2f}"
+    profit_display = f"Loss: £{abs(profit):,.2f}" if profit <= 0 else f"Net Profit: £{profit:,.2f}"
     
-    # Summary Table
+    # Risk band mapping
+    band_display = {'LOW': 'Low', 'MODERATE': 'Moderate', 'HIGH': 'Elevated'}.get(risk_band, risk_band)
+    
+    # ===== HEADER =====
+    elements.append(Paragraph("HMRC Risk Assessment Report", title_style))
+    elements.append(Paragraph(f"Tax Year: {assessment['tax_year']}", subtitle_style))
+    elements.append(Spacer(1, 5))
+    elements.append(Paragraph("Automated Risk Indicator Review Based on Declared Figures", small_style))
+    elements.append(Spacer(1, 15))
+    
+    # ===== SECTION 1: PURPOSE =====
+    elements.append(Paragraph("1. Purpose of This Report", section_style))
+    elements.append(Paragraph(
+        "This report provides an automated review of selected financial figures entered by the user for the stated tax year. "
+        "It highlights statistical patterns and indicators commonly reviewed during routine compliance checks.",
+        body_style
+    ))
+    elements.append(Paragraph(
+        "The report is designed to support record-keeping awareness and preparation only.",
+        body_style
+    ))
+    
+    # ===== SECTION 2: SUMMARY OF DECLARED FIGURES =====
+    elements.append(Paragraph("2. Summary of Declared Figures", section_style))
+    
     summary_data = [
-        ['Tax Year:', assessment['tax_year'], 'Industry:', industry_name],
-        ['Turnover:', f"£{assessment['turnover']:,.2f}", 'Risk Score:', f"{risk_score}/100"],
-        ['Expenses:', f"£{assessment['total_expenses']:,.2f}", 'Risk Band:', risk_band],
-        ['Result:', profit_display, 'Mileage:', f"{mileage_miles:,.0f} miles"],
+        ['Item', 'Value'],
+        ['Tax Year', assessment['tax_year']],
+        ['Industry / Trade', industry_name],
+        ['Turnover', f"£{assessment['turnover']:,.2f}"],
+        ['Total Expenses', f"£{assessment['total_expenses']:,.2f}"],
+        ['Net Profit or Loss', profit_display],
+        ['Business Mileage', f"{mileage_miles:,.0f} miles" if mileage_miles > 0 else "Not declared"],
     ]
     
-    summary_table = Table(summary_data, colWidths=[1.2*inch, 1.5*inch, 1.2*inch, 1.5*inch])
+    summary_table = Table(summary_data, colWidths=[2.2*inch, 3*inch])
     summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#f8fafc')),
-        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1e293b')),
-        ('FONTNAME', (0, 0), (-1, -1), 'Helvetica'),
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#f5f5f5')),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1a1a1a')),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
         ('FONTSIZE', (0, 0), (-1, -1), 9),
         ('PADDING', (0, 0), (-1, -1), 8),
-        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e2e8f0')),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
     ]))
     elements.append(summary_table)
     elements.append(Spacer(1, 15))
     
-    # Data inconsistency warning
-    if assessment.get('has_data_inconsistency'):
-        elements.append(Paragraph("⚠ Data Inconsistency: Loss checkbox selected but figures show profit.", warning_style))
-        elements.append(Spacer(1, 8))
+    # ===== SECTION 3: OVERALL RISK INDICATOR RESULT =====
+    elements.append(Paragraph("3. Overall Risk Indicator Result", section_style))
     
-    # Risk Indicators Panel - TRANSPARENCY
-    elements.append(Paragraph("What Affected Your Score", heading_style))
+    risk_data = [
+        ['Risk Score', f"{risk_score} / 100"],
+        ['Risk Band', band_display],
+    ]
+    risk_table = Table(risk_data, colWidths=[2.2*inch, 3*inch])
+    risk_table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#fafafa')),
+        ('TEXTCOLOR', (0, 0), (-1, -1), colors.HexColor('#1a1a1a')),
+        ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+        ('FONTNAME', (1, 0), (1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 0), (-1, -1), 10),
+        ('PADDING', (0, 0), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#cccccc')),
+        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+    ]))
+    elements.append(risk_table)
+    elements.append(Spacer(1, 10))
+    
+    # Band explanation
+    band_explanations = {
+        'LOW': "This score indicates that the submitted figures fall broadly within commonly observed ranges for the selected trade. This does not imply immunity from review, nor does it predict HMRC actions.",
+        'MODERATE': "This score indicates that certain figures fall outside typical ranges for the selected trade. This may warrant additional attention to record-keeping. This does not predict HMRC actions.",
+        'HIGH': "This score indicates that multiple figures fall outside typical ranges for the selected trade. Enhanced documentation is advisable. This does not predict HMRC actions."
+    }
+    elements.append(Paragraph(band_explanations.get(risk_band, band_explanations['LOW']), body_style))
+    
+    # ===== SECTION 4: INDICATORS IDENTIFIED =====
+    elements.append(Paragraph("4. Indicators Identified", section_style))
     
     triggered = [ind for ind in risk_indicators if ind.get('triggered')]
     if not triggered:
-        elements.append(Paragraph("No predefined risk indicators were triggered based on the figures provided and the current rule set.", body_style))
+        elements.append(Paragraph(
+            "No predefined risk indicators were triggered based on the figures provided and the current rule set. "
+            "This does not guarantee exemption from review.",
+            body_style
+        ))
     else:
         for ind in triggered:
-            weight_color = {'high': '#dc2626', 'medium': '#d97706', 'low': '#059669'}.get(ind.get('weight', 'low'), '#6b7280')
-            elements.append(Paragraph(f"<b>{ind['name']}</b> ({ind.get('weight', 'low').title()} weight, +{ind['points']} points)", subheading_style))
-            elements.append(Paragraph(f"• {ind['explanation']}", indicator_style))
-            elements.append(Paragraph(f"• HMRC Context: {ind.get('hmrc_context', 'N/A')}", indicator_style))
-            elements.append(Paragraph(f"• Documentation: {ind.get('documentation_tips', 'N/A')}", indicator_style))
-            elements.append(Spacer(1, 6))
+            weight_display = {'high': 'Higher', 'medium': 'Medium', 'low': 'Lower'}.get(ind.get('weight', 'low'), 'Standard')
+            
+            elements.append(Paragraph(f"Indicator: {ind['name']}", indicator_title_style))
+            elements.append(Paragraph(f"Relative Weight: {weight_display}", bullet_style))
+            elements.append(Paragraph(f"Description: {ind['explanation']}", bullet_style))
+            
+            # Context from AI or default
+            hmrc_context = ind.get('hmrc_context', 'This metric may be reviewed as part of routine compliance checks.')
+            elements.append(Paragraph(f"Context: {hmrc_context}", bullet_style))
+            elements.append(Spacer(1, 8))
     
-    # Contextual notes
-    contextual_notes = assessment.get('contextual_notes', [])
+    # ===== SECTION 5: CONTEXTUAL NOTES =====
+    elements.append(Paragraph("5. Contextual Notes", section_style))
+    
     if contextual_notes:
-        elements.append(Paragraph("Contextual Notes", heading_style))
         for note in contextual_notes:
-            elements.append(Paragraph(f"• {note}", small_style))
+            elements.append(Paragraph(f"• {note}", bullet_style))
+    else:
+        elements.append(Paragraph(
+            "No specific contextual notes apply to this assessment.",
+            body_style
+        ))
     
-    elements.append(Spacer(1, 10))
-    
-    # AI Content
-    elements.append(Paragraph("Detailed Analysis", heading_style))
-    for para in ai_content.split('\n\n'):
-        if para.strip():
-            clean = para.replace('**', '').replace('- ', '• ').strip()
-            if clean.startswith('# '):
-                elements.append(Paragraph(clean[2:], heading_style))
-            elif clean.startswith('## '):
-                elements.append(Paragraph(clean[3:], subheading_style))
-            else:
-                elements.append(Paragraph(clean, body_style))
-    
-    # Future Attention Section
-    elements.append(Spacer(1, 15))
-    elements.append(Paragraph("What Could Increase HMRC Attention in Future Years", heading_style))
-    elements.append(Paragraph("The following factors may increase scrutiny in future tax years (for educational purposes only):", body_style))
-    future_items = [
-        "Sudden changes in expense ratios year-on-year",
-        "Consecutive years of declared losses",
-        "Incomplete or missing mileage records",
-        "Large fluctuations in turnover without clear explanation",
-        "Significant changes in profit margins",
-        "Inconsistencies between declared figures and supporting documentation"
-    ]
-    for item in future_items:
-        elements.append(Paragraph(f"• {item}", indicator_style))
-    
-    # Disclaimer
-    elements.append(Spacer(1, 20))
-    elements.append(Paragraph("Important Legal Notice", heading_style))
+    elements.append(Spacer(1, 5))
     elements.append(Paragraph(
-        "This tool provides an automated risk indicator based on user-entered figures and public statistical patterns. "
-        "It does not provide tax advice and does not submit or amend tax returns. Users should consult a qualified tax "
-        "professional for specific advice regarding their tax affairs.",
-        disclaimer_style
+        "Note: Profit margins and expense ratios vary widely by trade. No single indicator determines risk in isolation. "
+        "Some indicators are informational only and not determinative.",
+        small_style
     ))
+    
+    # ===== AI GENERATED CONTENT (if any) =====
+    if ai_content and ai_content.strip():
+        elements.append(Spacer(1, 10))
+        for para in ai_content.split('\n\n'):
+            if para.strip():
+                clean = para.replace('**', '').replace('- ', '• ').strip()
+                if not clean.startswith('#'):
+                    elements.append(Paragraph(clean, body_style))
+    
+    # ===== SECTION 6: RECORD-KEEPING GUIDANCE =====
+    elements.append(Paragraph("6. Record-Keeping Guidance (Non-Advisory)", section_style))
+    elements.append(Paragraph("It is generally advisable to retain:", body_style))
+    
+    record_items = [
+        "Invoices and receipts for all business expenses",
+        "Bank statements showing business transactions",
+        "Mileage logs with dates, destinations, and business purpose (where applicable)",
+        "Allocation notes for mixed-use expenses (e.g., home office, vehicle)",
+        "Contracts and correspondence relating to business income"
+    ]
+    for item in record_items:
+        elements.append(Paragraph(f"• {item}", bullet_style))
+    
+    # ===== SECTION 7: IMPORTANT LIMITATIONS =====
+    elements.append(Paragraph("7. Important Limitations", section_style))
+    
+    limitations = [
+        "This report is based solely on user-provided information",
+        "No external HMRC systems are accessed or consulted",
+        "No validation of the accuracy of submitted figures is performed",
+        "Actual compliance outcomes depend on full facts and circumstances",
+        "This analysis uses statistical patterns and does not predict HMRC actions"
+    ]
+    for item in limitations:
+        elements.append(Paragraph(f"• {item}", bullet_style))
+    
+    # ===== SECTION 8: LEGAL & COMPLIANCE NOTICE =====
+    elements.append(Spacer(1, 20))
+    elements.append(Paragraph("8. Legal & Compliance Notice", section_style))
+    
+    elements.append(Paragraph("DISCLAIMER", ParagraphStyle('DisclaimerHeader', parent=disclaimer_style, fontName='Helvetica-Bold', fontSize=9)))
+    elements.append(Spacer(1, 5))
+    
+    disclaimer_text = [
+        "This report is generated by an independent automated analysis tool and is not affiliated with HM Revenue & Customs (HMRC).",
+        "",
+        "It does not constitute tax advice, legal advice, or a compliance determination. It does not guarantee enquiry outcomes, audit selection, or acceptance of figures.",
+        "",
+        "Users remain responsible for:",
+        "• Accuracy of submitted information",
+        "• Proper record-keeping",
+        "• Correct filing of tax returns",
+        "• Seeking professional advice where appropriate"
+    ]
+    
+    for line in disclaimer_text:
+        if line:
+            elements.append(Paragraph(line, disclaimer_style))
+        else:
+            elements.append(Spacer(1, 4))
+    
+    # ===== FOOTER =====
+    elements.append(Spacer(1, 25))
+    elements.append(Paragraph("—— END OF REPORT ——", footer_style))
     elements.append(Spacer(1, 10))
-    elements.append(Paragraph(f"Report generated: {datetime.now(timezone.utc).strftime('%d %B %Y at %H:%M UTC')}", disclaimer_style))
-    elements.append(Paragraph(f"Reference: {assessment['id']}", disclaimer_style))
+    elements.append(Paragraph(f"Report generated: {datetime.now(timezone.utc).strftime('%d %B %Y at %H:%M UTC')}", footer_style))
+    elements.append(Paragraph(f"Reference: {assessment['id']}", footer_style))
     
     doc.build(elements)
     pdf_content = buffer.getvalue()
