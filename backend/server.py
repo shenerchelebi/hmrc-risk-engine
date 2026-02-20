@@ -784,7 +784,7 @@ async def get_current_user_optional(credentials: HTTPAuthorizationCredentials = 
 # ================================
 
 async def generate_ai_report_v2(assessment: dict) -> str:
-    """V2 AI report with industry context and full transparency"""
+    """V2 AI report with professional audit-ready format"""
     from emergentintegrations.llm.chat import LlmChat, UserMessage
     
     industry_config = INDUSTRY_CONFIG.get(assessment.get('industry', 'other'), INDUSTRY_CONFIG['other'])
@@ -804,62 +804,64 @@ async def generate_ai_report_v2(assessment: dict) -> str:
     # Build triggered indicators section
     triggered = [ind for ind in risk_indicators if ind.get('triggered')]
     if len(triggered) == 0:
-        executive_guidance = "No predefined risk indicators were triggered based on the figures provided and the current rule set."
-        indicators_text = "None triggered"
+        indicators_summary = "No predefined risk indicators were triggered based on the figures provided."
     else:
-        executive_guidance = f"{len(triggered)} risk indicator(s) were identified. Review the detailed analysis below."
-        indicators_text = "\n".join([f"- {ind['name']}: {ind['explanation']}" for ind in triggered])
+        indicators_summary = f"{len(triggered)} indicator(s) identified requiring documentation awareness."
     
     chat = LlmChat(
         api_key=EMERGENT_LLM_KEY,
         session_id=f"report-v2-{assessment['id']}",
-        system_message="""You are a UK tax compliance analyst generating a professional HMRC risk assessment report.
+        system_message="""You are a UK tax compliance analyst generating a PROFESSIONAL, AUDIT-READY report.
 
-CRITICAL RULES:
-- Use ONLY the exact risk score, band, and indicators provided
-- Do NOT provide tax advice
-- Use neutral, defensive language
-- Never claim "HMRC will not investigate" - say "no predefined indicators triggered"
-- Include industry context throughout
-- For mileage, always express as miles not pounds
-- This is informational only, not advisory"""
+CRITICAL LANGUAGE RULES:
+- Use formal, neutral, accountant-grade British English
+- NO marketing language, NO guarantees, NO promises
+- NO claims about HMRC behaviour or investigation likelihood
+- Use "it is recommended", "it is noted", "where applicable" instead of "you should"
+- Clear separation between analysis, context, and guidance
+- This is NOT tax advice, NOT HMRC-affiliated
+- Suitable to be shown to an accountant or retained for records
+
+FORBIDDEN PHRASES:
+- "HMRC will not investigate"
+- "You should"
+- "We guarantee"
+- "Rest assured"
+- Any marketing or sales language"""
     ).with_model("openai", "gpt-5.2")
     
-    prompt = f"""Generate a professional HMRC Risk Assessment Report V2.
+    prompt = f"""Generate SECTION 4 (Indicators Identified) and SECTION 5 (Contextual Notes) content only.
 
 TAXPAYER DATA:
 - Tax Year: {assessment['tax_year']}
-- Industry: {assessment.get('industry_name', 'General')}
+- Industry/Trade: {assessment.get('industry_name', 'General')}
 - Turnover: £{assessment['turnover']:,.2f}
 - Total Expenses: £{assessment['total_expenses']:,.2f}
 - Financial Result: {profit_status}
-- Profit Margin: {assessment['profit_ratio']}%
 - Mileage Claimed: {mileage_miles:,.0f} miles
 
-INDUSTRY CONTEXT:
-- Expected profit margin for {assessment.get('industry_name', 'this sector')}: {industry_config['expected_profit_margin'][0]}%-{industry_config['expected_profit_margin'][1]}%
-- Normal expense ratio: {industry_config['normal_expense_ratio'][0]}%-{industry_config['normal_expense_ratio'][1]}%
-- Known HMRC sensitivities: {', '.join(industry_config['hmrc_sensitivities'])}
+INDUSTRY REFERENCE DATA:
+- Typical profit margin range: {industry_config['expected_profit_margin'][0]}%-{industry_config['expected_profit_margin'][1]}%
+- Typical expense ratio range: {industry_config['normal_expense_ratio'][0]}%-{industry_config['normal_expense_ratio'][1]}%
+- Common areas of review: {', '.join(industry_config['hmrc_sensitivities'])}
 
-RISK ASSESSMENT (use these exact values):
+RISK ASSESSMENT RESULT:
 - Risk Score: {risk_score}/100
 - Risk Band: {risk_band}
+- Summary: {indicators_summary}
 
-TRIGGERED INDICATORS:
-{indicators_text}
+TRIGGERED INDICATORS (expand each professionally):
+{chr(10).join([f"- {ind['name']} ({ind.get('weight', 'low').title()} weight): {ind['explanation']}" for ind in triggered]) if triggered else "None"}
 
 CONTEXTUAL NOTES:
 {chr(10).join(['- ' + note for note in contextual_notes]) if contextual_notes else 'None'}
 
-Generate the report with these sections:
-1. EXECUTIVE SUMMARY (Start with: "{executive_guidance}")
-2. INDUSTRY CONTEXT (How your figures compare to {assessment.get('industry_name', 'industry')} norms)
-3. RISK INDICATOR ANALYSIS (Detail each triggered indicator with HMRC context and documentation tips)
-4. WHAT HMRC TYPICALLY EXAMINES (For similar cases in {assessment.get('industry_name', 'this sector')})
-5. RECORD-KEEPING CHECKLIST (Industry-specific)
-6. WHAT COULD INCREASE HMRC ATTENTION IN FUTURE YEARS (Educational: sudden changes, consecutive losses, incomplete records, large fluctuations)
+For each indicator, provide:
+1. A formal description of what was identified
+2. Neutral context on why this metric may be reviewed
+3. General record-keeping considerations (not advice)
 
-Use the exact risk score ({risk_score}) and band ({risk_band}). This is NOT tax advice."""
+Use formal British English. No casual language. No guarantees or promises."""
 
     user_message = UserMessage(text=prompt)
     response = await chat.send_message(user_message)
