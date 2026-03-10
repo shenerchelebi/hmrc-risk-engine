@@ -200,9 +200,13 @@ const AssessmentPage = () => {
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent className="bg-zinc-900 border-zinc-700">
+                        <SelectItem value="2024-25">2024-25 (Current)</SelectItem>
                         <SelectItem value="2023-24">2023-24</SelectItem>
                         <SelectItem value="2022-23">2022-23</SelectItem>
                         <SelectItem value="2021-22">2021-22</SelectItem>
+                        <SelectItem value="2020-21">2020-21</SelectItem>
+                        <SelectItem value="2019-20">2019-20</SelectItem>
+                        <SelectItem value="2018-19">2018-19</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
