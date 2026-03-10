@@ -34,7 +34,7 @@ const AssessmentPage = () => {
   const [expandedLoss, setExpandedLoss] = useState(false);
   
   const [formData, setFormData] = useState({
-    tax_year: "2023-24",
+    tax_year: "2024-25",
     industry: "other",
     turnover: "",
     total_expenses: "",
