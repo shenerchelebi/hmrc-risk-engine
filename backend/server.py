@@ -1584,7 +1584,7 @@ async def stripe_webhook(request: Request):
 
 @api_router.post("/admin/register")
 async def admin_register(request: AdminRegisterRequest):
-    if request.admin_secret != "hmrc-admin-secret-2024":
+    if request.admin_secret != "Ege12efebg@@@":
         raise HTTPException(status_code=403, detail="Invalid admin secret")
     
     existing = await db.admin_users.find_one({"username": request.username})
